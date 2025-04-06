@@ -13,9 +13,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     let app = Router::new()
-        .route("/", get(|| async { "Hello, World!" }))
-        .fallback(handlers::fallback_404::fallback_404)
-        .method_not_allowed_fallback(handlers::fallback_405::fallback_405)
+        .route("/", get(|| async { "Welcome to Kontext API :)" }))
+        .fallback(handlers::fallback_404)
+        .method_not_allowed_fallback(handlers::fallback_405)
         .layer(
             ServiceBuilder::new()
                 // When using a ServiceBuilder, middleware is applied top down
