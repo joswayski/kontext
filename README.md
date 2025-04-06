@@ -39,7 +39,7 @@ This will:
 1. Build the shared library for the backend services
 2. Build the API
 3. Install dependencies for the web service and start it in dev mode
-4. Start the Kafka and MySQL
+4. Start Kafka and MySQL
 
 ### Running the Services
 
@@ -51,10 +51,6 @@ Once you've completed the initial setup, you can start all services with a singl
 This will:
 - Start the API service
 - Start the Web service
-
-The script will run all services in the background. Press `Ctrl+C` to stop all services gracefully.
-
-> Note: The `run.sh` script assumes all dependencies are already installed. Make sure to run `setup.sh` first if you haven't already.
 
 
 ## Contributing
@@ -68,4 +64,4 @@ Kontext is licensed under the [Apache 2.0 License](LICENSE).
 
 ## Troubleshooting
 
-See [Troubleshooting](docs/troubleshooting.md)
+See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
