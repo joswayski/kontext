@@ -8,7 +8,7 @@ struct HealthResponse {
 
 pub async fn health_check() -> impl IntoResponse {
     let response = HealthResponse {
-        status: "ok".to_string(),
+        status: "Saul Goodman".to_string(),
     };
 
     axum::Json(response)

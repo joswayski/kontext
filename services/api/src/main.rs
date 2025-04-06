@@ -1,37 +1,38 @@
+use ::shared::config;
 use axum::{routing::get, Router};
-use dotenvy::dotenv;
-use std::env;
+use handlers::{fallback_404::fallback_404, fallback_405::fallback_405, health::health_check};
 use std::time::Duration;
 use tokio::signal;
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
-
 mod handlers;
 mod shared;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load environment variables from .env file
-    dotenv().ok();
+    config::load_env();
 
-    // Get port from environment or use default
-    let port = env::var("PORT").unwrap_or_else(|_| "4000".to_string());
+    let port = config::get_port();
     let addr = format!("0.0.0.0:{}", port);
 
-    tracing_subscriber::fmt::init();
+    // Configure tracing subscriber with more detailed logging
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .with_level(true)
+        .with_ansi(true)
+        .init();
 
     let app = Router::new()
         .route(
             "/",
             get(|| async { "Welcome to Kontext API :) - Check the docs for more information!" }),
         )
-        // Health check endpoints
-        .route("/health", get(handlers::health_check))
-        .route("/api/health", get(handlers::health_check))
-        .fallback(handlers::fallback_404)
-        .method_not_allowed_fallback(handlers::fallback_405)
+        .route("/health", get(health_check)) // k8s health check
+        .route("/api/health", get(health_check)) // api health check
+        .fallback(fallback_404)
+        .method_not_allowed_fallback(fallback_405)
         .layer(
             ServiceBuilder::new()
                 // When using a ServiceBuilder, middleware is applied top down
