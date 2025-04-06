@@ -23,7 +23,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     let app = Router::new()
-        .route("/", get(|| async { "Welcome to Kontext API :)" }))
+        .route(
+            "/",
+            get(|| async { "Welcome to Kontext API :) - Check the docs for more information!" }),
+        )
+        // Health check endpoints
+        .route("/health", get(handlers::health_check))
+        .route("/api/health", get(handlers::health_check))
         .fallback(handlers::fallback_404)
         .method_not_allowed_fallback(handlers::fallback_405)
         .layer(
