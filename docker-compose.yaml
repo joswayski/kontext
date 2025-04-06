@@ -16,6 +16,8 @@ services:
       - 8082:8082
       - 9092:9092
       - 29092:29092
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
 
   console:
     image: docker.redpanda.com/redpandadata/console:v2.3.8
@@ -30,50 +32,31 @@ services:
           schemaRegistry:
             enabled: true
             urls: ["http://redpanda:8081"]
-        connect:
-          enabled: true
-          clusters:
-            - name: datagen
-              url: http://connect:8083
     ports:
       - "8080:8080"
     depends_on:
       - redpanda
 
-  connect:
-    image: cnfldemos/cp-server-connect-datagen:0.5.0-6.2.0
-    hostname: connect
-    container_name: connect
-    depends_on:
-      - redpanda
+  mysql:
+    image: mysql:8.0
+    platform: linux/amd64
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: kontext
+      MYSQL_USER: kontext
+      MYSQL_PASSWORD: kontext
     ports:
-      - "8083:8083"
-    environment:
-      CONNECT_BOOTSTRAP_SERVERS: "redpanda:29092"
-      CONNECT_REST_ADVERTISED_HOST_NAME: connect
-      CONNECT_GROUP_ID: compose-connect-group
-      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
-      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
-      CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
-      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://redpanda:8081
-      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
-      CONNECT_LOG4J_LOGGERS: org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  # OwlShop is a service that simulates an ecommerce shop that has producers and consumers. It will setup
-  # a few Kafka topics, produces to them and also consumes the data again via consumer groups.
-  owl-shop:
-    #image: quay.io/cloudhut/owl-shop:v1.2.0
-    image: quay.io/cloudhut/owl-shop:latest
-    environment:
-      - SHOP_KAFKA_BROKERS=redpanda:29092
-      - SHOP_KAFKA_TOPICREPLICATIONFACTOR=1
-      - SHOP_TRAFFIC_INTERVAL_RATE=1
-      - SHOP_TRAFFIC_INTERVAL_DURATION=0.1s
-    depends_on:
-      - redpanda
+volumes:
+  mysql_data:
+  redpanda_data:
