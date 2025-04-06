@@ -31,3 +31,7 @@ Ideas, feedback, and contributions are welcome! Feel free to open an issue to di
 ## License
 
 Kontext is licensed under the [Apache 2.0 License](LICENSE).
+
+## Troubleshooting
+
+See [Troubleshooting](docs/troubleshooting.md)
