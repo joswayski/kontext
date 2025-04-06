@@ -1,0 +1,10 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dotenvy = "0.15.7"
+futures = "0.3.31"
+rdkafka = "0.37.0"
+sqlx = "0.8.3"
