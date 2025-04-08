@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 
 pub struct FallbackResponse {
-    path: String,
-    method: String,
-    status: String,
-    code: u16,
-    message: String,
-    documentation: String,
+    pub path: String,
+    pub method: String,
+    pub status: String,
+    pub code: u16,
+    pub message: String,
+    pub documentation: String,
 }
 
 impl FallbackResponse {

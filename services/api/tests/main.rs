@@ -1,8 +1,10 @@
+use api::router::create_routes;
 use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
 use tower::ServiceExt; // Needed for .oneshot()
+
 async fn get_response(uri: &str) -> axum::response::Response {
     // Call the function from the library crate 'api'
     let app = create_routes();
