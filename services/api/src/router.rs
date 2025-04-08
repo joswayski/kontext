@@ -5,12 +5,9 @@ use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
-pub mod handlers;
-pub mod shared;
+use crate::handlers::{fallback_404, fallback_405, health_check};
 
 pub fn create_routes() -> Router {
-    use handlers::{fallback_404::fallback_404, fallback_405::fallback_405, health::health_check};
-
     Router::new()
         .route(
             "/",

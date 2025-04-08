@@ -1,12 +1,10 @@
+use crate::shared::FallbackResponse;
 use axum::{
     extract::Request,
     http::{Method, StatusCode},
     response::IntoResponse,
     Json,
 };
-
-use crate::shared::FallbackResponse;
-
 pub async fn fallback_404(method: Method, request: Request) -> impl IntoResponse {
     let path = request.uri().path().to_string();
     let response = FallbackResponse::new(
