@@ -38,6 +38,8 @@ async fn test_api_health_check_route() {
     // TODO: Assert the body of the response
 }
 
+use api::shared::FallbackResponse;
+
 #[tokio::test]
 async fn test_not_found_route() {
     let uri = "/a/route/that/does/not/exist";

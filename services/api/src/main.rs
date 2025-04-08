@@ -2,9 +2,9 @@ use ::shared::config;
 use router::create_routes;
 use tokio::signal;
 
-mod handlers;
-mod router;
-mod shared;
+pub mod handlers;
+pub mod router;
+pub mod shared;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
