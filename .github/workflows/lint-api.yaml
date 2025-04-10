@@ -6,7 +6,7 @@ on:
     paths:
       - "services/api/**"
   pull_request:
-    types: [ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
     paths:
       - "services/api/**"
@@ -16,6 +16,7 @@ jobs:
     uses: ./.github/workflows/setup.yaml
 
   lint-api:
+    if: github.event.pull_request.draft == false
     needs: setup
     runs-on: ubuntu-latest
     steps:

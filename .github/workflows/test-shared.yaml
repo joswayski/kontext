@@ -6,7 +6,7 @@ on:
     paths:
       - "services/shared/**"
   pull_request:
-    types: [ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
     paths:
       - "services/shared/**"
@@ -19,6 +19,7 @@ jobs:
     uses: ./.github/workflows/lint-shared.yaml
 
   test-shared:
+    if: github.event.pull_request.draft == false
     needs: [setup, lint-shared]
     runs-on: ubuntu-latest
     steps:

@@ -4,12 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
   workflow_call: # This makes the workflow callable from other workflows
 
 jobs:
   setup:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     outputs:
       setup-complete: ${{ steps.setup-status.outputs.status }}
