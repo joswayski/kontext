@@ -6,6 +6,7 @@ on:
     paths:
       - "services/api/**"
   pull_request:
+    types: [ready_for_review]
     branches: [main]
     paths:
       - "services/api/**"
