@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yaml
+
+  test:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make test script executable
+        run: chmod +x scripts/test.sh
+
+      - name: Run tests
+        run: ./scripts/test.sh
+
+      - name: Cleanup infrastructure
+        if: always()
+        run: docker compose down

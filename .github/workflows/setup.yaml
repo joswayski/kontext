@@ -1,0 +1,44 @@
+name: Setup and Build Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call: # This makes the workflow callable from other workflows
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      setup-complete: ${{ steps.setup-status.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Make setup script executable
+        run: chmod +x scripts/setup.sh
+
+      - name: Run setup script
+        id: setup-status
+        run: |
+          ./scripts/setup.sh
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Verify services are running
+        run: |
+          docker ps | grep kafka
+          docker ps | grep mysql
