@@ -12,6 +12,7 @@ NC='\033[0m' # No Color
 # Initialize run flags (default is to run all tests if no arguments provided)
 RUN_API=false
 RUN_WEB=false
+RUN_SHARED=false
 # For future components:
 # RUN_CONSUMER=false
 # RUN_MIGRATOR=false
@@ -23,6 +24,7 @@ show_usage() {
   echo -e "\nAvailable services:"
   echo -e "  api       Run API tests"
   echo -e "  web       Run web tests"
+  echo -e "  shared    Run shared library tests"
   # Add more options as they become available
   # echo -e "  consumer  Run consumer tests"
   # echo -e "  migrator  Run migrator/seeder tests"
@@ -51,6 +53,9 @@ if [ $# -gt 0 ]; then
       web)
         RUN_WEB=true
         ;;
+      shared)
+        RUN_SHARED=true
+        ;;
       # For future components:
       # consumer)
       #   RUN_CONSUMER=true
@@ -71,15 +76,25 @@ echo -e "\n\n${BLUE}🧪 Running Kontext tests...${NC}"
 # Initialize test status variables
 API_TEST_STATUS=0
 WEB_TEST_STATUS=0
+SHARED_TEST_STATUS=0
 # For future components:
 # CONSUMER_TEST_STATUS=0
 # MIGRATOR_TEST_STATUS=0
 
-# Always build shared library first as it's a dependency
-echo -e "\n\n${GREEN}📦 Building shared library...${NC}"
-cd services/shared
-cargo build
-cd ../..
+# Run Shared tests if specified or if running all tests
+if [ "$RUN_SHARED" = true ] || [ "$RUN_ALL" = true ]; then
+    if [ -d "services/shared" ]; then
+        echo -e "\n\n${GREEN}📚 Testing Shared library...${NC}"
+        cd services/shared
+        cargo test
+        SHARED_TEST_STATUS=$?
+        cd ../..
+    else
+        echo -e "\n\n${YELLOW}ℹ️ Shared library not found, skipping tests.${NC}"
+    fi
+else
+    echo -e "\n\n${YELLOW}ℹ️ Shared tests skipped.${NC}"
+fi
 
 # Run API tests if specified or if running all tests
 if [ "$RUN_API" = true ] || [ "$RUN_ALL" = true ]; then
@@ -127,7 +142,7 @@ fi
 echo -e "\n${BLUE}=======================================================================${NC}"
 
 # Check all test statuses
-if [ $API_TEST_STATUS -eq 0 ] && [ $WEB_TEST_STATUS -eq 0 ]; then
+if [ $API_TEST_STATUS -eq 0 ] && [ $WEB_TEST_STATUS -eq 0 ] && [ $SHARED_TEST_STATUS -eq 0 ]; then
     # Add other test statuses here when implemented: && [ $CONSUMER_TEST_STATUS -eq 0 ] && [ $MIGRATOR_TEST_STATUS -eq 0 ]
     echo -e "${GREEN}✅ All tests passed!${NC}"
     exit 0
