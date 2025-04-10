@@ -1,0 +1,34 @@
+name: API Service Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/api/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/api/**"
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yaml
+
+  lint-api:
+    uses: ./.github/workflows/lint-api.yaml
+
+  test-api:
+    needs: [setup, lint-api]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make test script executable
+        run: chmod +x scripts/test.sh
+
+      - name: Run API service tests
+        run: ./scripts/test.sh api
+
+      - name: Cleanup infrastructure
+        if: always()
+        run: docker compose down

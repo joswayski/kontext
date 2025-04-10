@@ -1,17 +1,24 @@
-name: Test
+name: Shared Service Tests
 
 on:
   push:
     branches: [main]
+    paths:
+      - "services/shared/**"
   pull_request:
     branches: [main]
+    paths:
+      - "services/shared/**"
 
 jobs:
   setup:
     uses: ./.github/workflows/setup.yaml
 
-  test:
-    needs: setup
+  lint-shared:
+    uses: ./.github/workflows/lint-shared.yaml
+
+  test-shared:
+    needs: [setup, lint-shared]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,8 +26,8 @@ jobs:
       - name: Make test script executable
         run: chmod +x scripts/test.sh
 
-      - name: Run tests
-        run: ./scripts/test.sh
+      - name: Run shared service tests
+        run: ./scripts/test.sh shared
 
       - name: Cleanup infrastructure
         if: always()

@@ -1,0 +1,34 @@
+name: Web Service Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/web/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/web/**"
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yaml
+
+  lint-web:
+    uses: ./.github/workflows/lint-web.yaml
+
+  test-web:
+    needs: [setup, lint-web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make test script executable
+        run: chmod +x scripts/test.sh
+
+      - name: Run web service tests
+        run: ./scripts/test.sh web
+
+      - name: Cleanup infrastructure
+        if: always()
+        run: docker compose down
