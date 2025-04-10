@@ -28,30 +28,30 @@ Understanding Kafka event flows, their downstream impacts, and evolving schemas 
 - [Node.js](https://nodejs.org/)
 - [Docker](https://docs.docker.com/get-docker/) 
 
-### Initial Setup
+### Setup and Usage
 
-Run the setup script once to install all dependencies and start the required infrastructure:
 ```bash
+# First-time setup: build code, install dependencies and start infrastructure
 ./scripts/setup.sh
+
+# Start services (all=default, or specify: api, web)
+./scripts/run.sh                # all services
+./scripts/run.sh api web        # specific services
+
+# Run tests (all=default, or specify: api, web)
+./scripts/test.sh               # all tests
+./scripts/test.sh api           # only API tests
+
+# Get help for any script
+./scripts/run.sh --help
+./scripts/test.sh --help
 ```
 
-This will:
-1. Build the shared library for the backend services
-2. Build the API
-3. Install dependencies for the web service and start it in dev mode
-4. Start Kafka and MySQL
+#### What the Scripts Do
 
-### Running the Services
-
-Once you've completed the initial setup, you can start all services with a single command:
-```bash
-./scripts/run.sh
-```
-
-This will:
-- Start the API service
-- Start the Web service
-
+- **setup.sh**: Builds shared library, API, installs web dependencies, starts Kafka and MySQL
+- **run.sh**: Starts specified services (API, web) in development mode
+- **test.sh**: Runs tests for the specified services
 
 ## Contributing
 
