@@ -1,0 +1,29 @@
+name: Shared Service Linting and Formatting
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/shared/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/shared/**"
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yaml
+
+  lint-shared:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check formatting
+        working-directory: ./services/shared
+        run: cargo fmt --check
+
+      - name: Run clippy
+        working-directory: ./services/shared
+        run: cargo clippy -- -D warnings

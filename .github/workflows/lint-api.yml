@@ -1,0 +1,29 @@
+name: API Service Linting and Formatting
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/api/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/api/**"
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yaml
+
+  lint-api:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check formatting
+        working-directory: ./services/api
+        run: cargo fmt --check
+
+      - name: Run clippy
+        working-directory: ./services/api
+        run: cargo clippy -- -D warnings
