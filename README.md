@@ -26,32 +26,25 @@ Understanding Kafka event flows, their downstream impacts, and evolving schemas 
 
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Node.js](https://nodejs.org/)
-- [Docker](https://docs.docker.com/get-docker/) 
+- [Docker](https://docs.docker.com/get-docker/)
 
 ### Setup and Usage
 
 ```bash
-# First-time setup: build code, install dependencies and start infrastructure
+# Get help for any script with --help!
+
+# Builds shared library, API, installs web dependencies, starts Kafka and MySQL
 ./scripts/setup.sh
 
-# Start services (all=default, or specify: api, web)
+# Starts specified services (API, web) in development mode
 ./scripts/run.sh                # all services
 ./scripts/run.sh api web        # specific services
 
-# Run tests (all=default, or specify: api, web)
+# Runs tests for the specified services
 ./scripts/test.sh               # all tests
 ./scripts/test.sh api           # only API tests
 
-# Get help for any script
-./scripts/run.sh --help
-./scripts/test.sh --help
 ```
-
-#### What the Scripts Do
-
-- **setup.sh**: Builds shared library, API, installs web dependencies, starts Kafka and MySQL
-- **run.sh**: Starts specified services (API, web) in development mode
-- **test.sh**: Runs tests for the specified services
 
 ## Contributing
 
