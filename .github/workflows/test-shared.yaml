@@ -1,0 +1,36 @@
+name: Shared Service Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/shared/**"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+    paths:
+      - "services/shared/**"
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yaml
+
+  lint-shared:
+    uses: ./.github/workflows/lint-shared.yaml
+
+  test-shared:
+    if: github.event.pull_request.draft == false
+    needs: [setup, lint-shared]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make test script executable
+        run: chmod +x scripts/test.sh
+
+      - name: Run shared service tests
+        run: ./scripts/test.sh shared
+
+      - name: Cleanup infrastructure
+        if: always()
+        run: docker compose down
