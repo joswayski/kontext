@@ -10,6 +10,7 @@ on:
     branches: [main]
     paths:
       - "services/api/**"
+  workflow_call:
 
 jobs:
   setup:
