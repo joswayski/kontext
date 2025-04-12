@@ -33,7 +33,7 @@ Understanding Kafka event flows, their downstream impacts, and evolving schemas 
 ```bash
 # Get help for any script with --help!
 
-# Builds shared library, API, installs web dependencies, starts Kafka, MySQL, Qdrant
+# Builds the API, installs web dependencies, starts Kafka, MySQL, and Qdrant
 ./scripts/setup.sh
 
 # Starts specified services (API, web) in development mode
