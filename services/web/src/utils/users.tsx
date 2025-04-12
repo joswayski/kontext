@@ -14,7 +14,7 @@ export const usersQueryOptions = () =>
 		queryKey: ["users"],
 		queryFn: () =>
 			axios
-				.get<Array<User>>(DEPLOY_URL + "/api/users")
+				.get<Array<User>>(`${DEPLOY_URL}/api/users`)
 				.then((r) => r.data)
 				.catch(() => {
 					throw new Error("Failed to fetch users");
@@ -26,7 +26,7 @@ export const userQueryOptions = (id: string) =>
 		queryKey: ["users", id],
 		queryFn: () =>
 			axios
-				.get<User>(DEPLOY_URL + "/api/users/" + id)
+				.get<User>(`${DEPLOY_URL}/api/users/${id}`)
 				.then((r) => r.data)
 				.catch(() => {
 					throw new Error("Failed to fetch user");

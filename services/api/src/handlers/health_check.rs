@@ -3,12 +3,12 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 struct HealthResponse {
-    status: String,
+    message: String,
 }
 
 pub async fn health_check() -> impl IntoResponse {
     let response = HealthResponse {
-        status: "Saul Goodman".to_string(),
+        message: "Saul Goodman".to_string(),
     };
 
     axum::Json(response)

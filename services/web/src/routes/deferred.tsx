@@ -33,7 +33,9 @@ function Deferred() {
 			</Suspense>
 			<div>Count: {count}</div>
 			<div>
-				<button onClick={() => setCount(count + 1)}>Increment</button>
+				<button type="button" onClick={() => setCount(count + 1)}>
+					Increment
+				</button>
 			</div>
 		</div>
 	);

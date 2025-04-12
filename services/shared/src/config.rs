@@ -1,8 +1,8 @@
 use dotenvy::dotenv;
-use std::env;
+use std::{env, path::PathBuf};
 
-pub fn load_env() {
-    dotenv().ok();
+pub fn load_env() -> Option<PathBuf> {
+    dotenv().ok()
 }
 
 pub fn get_port() -> String {

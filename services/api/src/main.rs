@@ -4,17 +4,19 @@ use tokio::signal;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    config::load_env();
-
-    let port = config::get_port();
-    let addr = format!("0.0.0.0:{}", port);
-
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .with_level(true)
         .with_ansi(true)
         .init();
 
+    match config::load_env() {
+        Some(env_path) => tracing::info!("Loaded .env file from: {:?}", env_path),
+        None => tracing::warn!("No .env file found!"),
+    }
+
+    let port = config::get_port();
+    let addr = format!("0.0.0.0:{}", port);
     let app = create_routes();
 
     let listener = tokio::net::TcpListener::bind(&addr).await.map_err(|e| {
