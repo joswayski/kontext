@@ -23,9 +23,7 @@ show_usage() {
   echo -e "  api       Run API tests"
   echo -e "  web       Run web tests"
   echo -e "  shared    Run shared library tests"
-  # Add more options as they become available
-  # echo -e "  consumer  Run consumer tests"
-  # echo -e "  migrator  Run migrator/seeder tests"
+
   echo -e "\nExamples:"
   echo -e "  ./test.sh           # Run all tests"
   echo -e "  ./test.sh api       # Run only API tests"
@@ -54,13 +52,7 @@ if [ $# -gt 0 ]; then
       shared)
         RUN_SHARED=true
         ;;
-      # For future components:
-      # consumer)
-      #   RUN_CONSUMER=true
-      #   ;;
-      # migrator)
-      #   RUN_MIGRATOR=true
-      #   ;;
+
       *)
         echo -e "${YELLOW}Unknown service: $service${NC}"
         show_usage
