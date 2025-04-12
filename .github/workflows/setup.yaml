@@ -41,7 +41,7 @@ jobs:
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Start Docker Compose services
-        run: docker-compose up -d
+        run: docker compose up -d
 
       - name: Verify services are running
         run: |
