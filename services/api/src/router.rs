@@ -5,14 +5,11 @@ use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::handlers::{fallback_404, fallback_405, health_check};
+use crate::handlers::{fallback_404, fallback_405, health_check, root};
 
 pub fn create_routes() -> Router {
     Router::new()
-        .route(
-            "/",
-            get(|| async { "Welcome to Kontext API :) - Check the docs for more information!" }),
-        )
+        .route("/", get(root))
         .route("/health", get(health_check)) // k8s health check
         .route("/api/health", get(health_check)) // api health check
         .fallback(fallback_404)

@@ -32,6 +32,7 @@ dependencies = [
  "http",
  "http-body",
  "hyper",
+ "hyper-util",
  "serde",
  "serde_json",
  "shared",
@@ -685,6 +686,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "497bbc33a26fdd4af9ed9c70d63f61cf56a938375fbb32df34db9b1cd6d643f2"
 dependencies = [
  "bytes",
+ "futures-channel",
  "futures-util",
  "http",
  "http-body",
@@ -692,6 +694,7 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

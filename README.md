@@ -58,3 +58,10 @@ Kontext is licensed under the [Apache 2.0 License](LICENSE)
 ## Troubleshooting
 
 See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+
+
+
+
+## TODO fix biome formatting crap
+Fix dockerfile not running
+create  a web dockerfile for tanstack

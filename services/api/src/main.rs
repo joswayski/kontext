@@ -9,7 +9,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port = config::get_port();
     let addr = format!("0.0.0.0:{}", port);
 
-    // Configure tracing subscriber with more detailed logging
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .with_level(true)
