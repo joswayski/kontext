@@ -1424,7 +1424,6 @@ dependencies = [
  "futures",
  "rdkafka",
  "sqlx",
- "tracing",
 ]
 
 [[package]]
