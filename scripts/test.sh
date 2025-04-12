@@ -77,9 +77,7 @@ echo -e "\n\n${BLUE}🧪 Running Kontext tests...${NC}"
 API_TEST_STATUS=0
 WEB_TEST_STATUS=0
 SHARED_TEST_STATUS=0
-# For future components:
-# CONSUMER_TEST_STATUS=0
-# MIGRATOR_TEST_STATUS=0
+
 
 # Run Shared tests if specified or if running all tests
 if [ "$RUN_SHARED" = true ] || [ "$RUN_ALL" = true ]; then
@@ -118,32 +116,11 @@ else
     echo -e "\n\n${YELLOW}ℹ️ Web tests skipped.${NC}"
 fi
 
-# Code for future components:
-# if [ "$RUN_CONSUMER" = true ] || [ "$RUN_ALL" = true ]; then
-#     echo -e "\n\n${GREEN}📥 Testing Consumer service...${NC}"
-#     cd services/consumer
-#     cargo test
-#     CONSUMER_TEST_STATUS=$?
-#     cd ../..
-# else
-#     echo -e "\n\n${YELLOW}ℹ️ Consumer tests skipped.${NC}"
-# fi
-#
-# if [ "$RUN_MIGRATOR" = true ] || [ "$RUN_ALL" = true ]; then
-#     echo -e "\n\n${GREEN}🔄 Testing Migrator service...${NC}"
-#     cd services/migrator
-#     cargo test
-#     MIGRATOR_TEST_STATUS=$?
-#     cd ../..
-# else
-#     echo -e "\n\n${YELLOW}ℹ️ Migrator tests skipped.${NC}"
-# fi
 
 echo -e "\n${BLUE}=======================================================================${NC}"
 
 # Check all test statuses
 if [ $API_TEST_STATUS -eq 0 ] && [ $WEB_TEST_STATUS -eq 0 ] && [ $SHARED_TEST_STATUS -eq 0 ]; then
-    # Add other test statuses here when implemented: && [ $CONSUMER_TEST_STATUS -eq 0 ] && [ $MIGRATOR_TEST_STATUS -eq 0 ]
     echo -e "${GREEN}✅ All tests passed!${NC}"
     exit 0
 else

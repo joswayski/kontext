@@ -12,9 +12,6 @@ NC='\033[0m' # No Color
 # Initialize run flags (default is to run all services if no arguments provided)
 RUN_API=false
 RUN_WEB=false
-# For future components:
-# RUN_MIGRATOR=false
-# RUN_CONSUMER=false
 RUN_ALL=true
 
 show_usage() {
@@ -51,13 +48,7 @@ if [ $# -gt 0 ]; then
       web)
         RUN_WEB=true
         ;;
-      # For future components:
-      # migrator)
-      #   RUN_MIGRATOR=true
-      #   ;;
-      # consumer)
-      #   RUN_CONSUMER=true
-      #   ;;
+
       *)
         echo -e "${YELLOW}Unknown service: $service${NC}"
         show_usage
@@ -94,24 +85,6 @@ if [ "$RUN_WEB" = true ] || [ "$RUN_ALL" = true ]; then
     cd ../..
 fi
 
-# For future components:
-# MIGRATOR_PID=""
-# if [ "$RUN_MIGRATOR" = true ] || [ "$RUN_ALL" = true ]; then
-#     echo -e "\n\n${GREEN}🔄 Starting Migrator service...${NC}"
-#     cd services/migrator
-#     cargo run &
-#     MIGRATOR_PID=$!
-#     cd ../..
-# fi
-#
-# CONSUMER_PID=""
-# if [ "$RUN_CONSUMER" = true ] || [ "$RUN_ALL" = true ]; then
-#     echo -e "\n\n${GREEN}📥 Starting Consumer service...${NC}"
-#     cd services/consumer
-#     cargo run &
-#     CONSUMER_PID=$!
-#     cd ../..
-# fi
 
 echo -e "\n${BLUE}=======================================================================${NC}"
 echo -e "${YELLOW}🚀 Services are now running!${NC}"
@@ -124,9 +97,7 @@ cleanup() {
     # Only attempt to kill processes that exist
     [ -n "$API_PID" ] && kill $API_PID 2>/dev/null || true
     [ -n "$WEB_PID" ] && kill $WEB_PID 2>/dev/null || true
-    # For future components:
-    # [ -n "$MIGRATOR_PID" ] && kill $MIGRATOR_PID 2>/dev/null || true
-    # [ -n "$CONSUMER_PID" ] && kill $CONSUMER_PID 2>/dev/null || true
+
     exit 0
 }
 
