@@ -11,12 +11,6 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}🚀 Setting up Kontext...${NC}"
 
-# Build shared library first (dependency for other services)
-echo -e "\n\n${GREEN}📦 Building shared library...${NC}"
-cd services/shared
-cargo build
-cd ../..
-
 # Build API service
 echo -e "\n\n${GREEN}🌐 Building API service...${NC}"
 cd services/api
@@ -29,8 +23,10 @@ cd services/web
 npm install
 cd ../..
 
+# Shared is not needed, as it is a library and will be rebuilt by the API service
+
 # Start required infrastructure
-echo -e "\n\n${GREEN}🐳 Starting infrastructure (Kafka and MySQL)...${NC}"
+echo -e "\n\n${GREEN}🐳 Starting infrastructure (Kafka, MySQL, Qdrant)...${NC}"
 docker compose up -d
 
 echo -e "\n\n${GREEN}✅ Setup complete!${NC}"
