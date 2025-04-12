@@ -12,6 +12,7 @@ NC='\033[0m' # No Color
 # Initialize run flags (default is to run all services if no arguments provided)
 RUN_API=false
 RUN_WEB=false
+
 RUN_ALL=true
 
 show_usage() {

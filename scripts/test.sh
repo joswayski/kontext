@@ -13,9 +13,7 @@ NC='\033[0m' # No Color
 RUN_API=false
 RUN_WEB=false
 RUN_SHARED=false
-# For future components:
-# RUN_CONSUMER=false
-# RUN_MIGRATOR=false
+
 RUN_ALL=true
 
 show_usage() {
