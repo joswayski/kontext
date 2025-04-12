@@ -111,7 +111,7 @@ fi
 if [ "$RUN_WEB" = true ] || [ "$RUN_ALL" = true ]; then
     echo -e "\n\n${GREEN}🖥️ Testing Web service...${NC}"
     cd services/web
-    npm test
+    npm run test
     WEB_TEST_STATUS=$?
     cd ../..
 else
