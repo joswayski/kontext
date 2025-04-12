@@ -33,7 +33,7 @@ Understanding Kafka event flows, their downstream impacts, and evolving schemas 
 ```bash
 # Get help for any script with --help!
 
-# Builds shared library, API, installs web dependencies, starts Kafka and MySQL
+# Builds shared library, API, installs web dependencies, starts Kafka, MySQL, Qdrant
 ./scripts/setup.sh
 
 # Starts specified services (API, web) in development mode
@@ -58,10 +58,3 @@ Kontext is licensed under the [Apache 2.0 License](LICENSE)
 ## Troubleshooting
 
 See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-
-
-
-
-## TODO fix biome formatting crap
-create  a web dockerfile for tanstack
-add quadrant to dockercompose

@@ -30,7 +30,7 @@ npm install
 cd ../..
 
 # Start required infrastructure
-echo -e "\n\n${GREEN}🐳 Starting infrastructure (Kafka and MySQL)...${NC}"
+echo -e "\n\n${GREEN}🐳 Starting infrastructure (Kafka, MySQL, Qdrant)...${NC}"
 docker compose up -d
 
 echo -e "\n\n${GREEN}✅ Setup complete!${NC}"
