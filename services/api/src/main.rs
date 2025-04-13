@@ -15,9 +15,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => tracing::warn!("No .env file found!"),
     }
 
+    // ! TODO: Spawn background task to refresh metadata every 10 seconds
+
     let port = config::get_port();
     let addr = format!("0.0.0.0:{}", port);
     let app = create_routes();
+    // ! TODO: set app state
 
     let listener = tokio::net::TcpListener::bind(&addr).await.map_err(|e| {
         tracing::error!("Failed to bind to {}: {}", addr, e);
