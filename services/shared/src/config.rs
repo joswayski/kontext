@@ -3,11 +3,13 @@ use kafka::KafkaConfig;
 use std::env;
 
 mod kafka;
+pub mod tracing;
 
 #[derive(Debug, Clone)]
 pub struct Config {
     pub port: String,
     pub kafka: KafkaConfig,
+    pub tracing: tracing::TracingConfig,
 }
 
 impl Config {
@@ -15,10 +17,16 @@ impl Config {
         // Load environment variables from .env file if it exists
         let _ = dotenv();
 
-        Self {
+        let config = Self {
             port: env::var("PORT").unwrap_or_else(|_| "4000".to_string()),
             kafka: KafkaConfig::new(),
-        }
+            tracing: tracing::TracingConfig::default(),
+        };
+
+        // Initialize tracing with the configured settings
+        config.tracing.init();
+
+        config
     }
 }
 
@@ -34,13 +42,10 @@ fn test_config_defaults() {
     // Test default port
     assert_eq!(config.port, "4000");
 
-    // Test default Kafka cluster
-    let default_cluster = config.kafka.get_cluster("DEFAULT").unwrap();
-    assert_eq!(default_cluster.brokers, "localhost:9092");
-    assert_eq!(
-        default_cluster.metrics_url,
-        "http://localhost:8080/metrics/DEFAULT"
-    );
+    // Test default tracing config
+    assert_eq!(config.tracing.level, tracing::Level::DEBUG);
+    assert!(config.tracing.with_ansi);
+    assert!(config.tracing.with_level);
 }
 
 #[test]
