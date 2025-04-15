@@ -1,20 +1,21 @@
 use rdkafka::{consumer::BaseConsumer, ClientConfig};
 
-use crate::config::kafka::KafkaConfig;
-
 struct KafkaClients {
     pub consumer: BaseConsumer,
 }
 
 impl KafkaClients {
-    pub fn new_consumer(brokers: String, config: KafkaConfig) -> Option<BaseConsumer> {
+    pub fn create_consumer(brokers: String) -> Option<BaseConsumer> {
         match ClientConfig::new()
-            .set("bootstrap.servers", brokers)
+            .set("bootstrap.servers", &brokers)
             .create()
         {
-            Ok(consumer) => consumer,
+            Ok(consumer) => {
+                tracing::info!("Consumer created for {}", &brokers);
+                Some(consumer)
+            }
             Err(e) => {
-                tracing::error!("Failed to create consumer on {}", brokers);
+                tracing::error!("Failed to create consumer on {} - {}", brokers, e);
                 None
             }
         }
