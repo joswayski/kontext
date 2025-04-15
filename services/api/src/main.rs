@@ -4,16 +4,7 @@ use tokio::signal;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .with_level(true)
-        .with_ansi(true)
-        .init();
-
-    match config::load_env() {
-        Some(env_path) => tracing::info!("Loaded .env file from: {:?}", env_path),
-        None => tracing::warn!("No .env file found!"),
-    }
+    config::Config::new();
 
     // ! TODO: Spawn background task to refresh metadata every 10 seconds
 

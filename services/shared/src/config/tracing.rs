@@ -1,4 +1,3 @@
-use tracing::Level as TracingLevel;
 use tracing_subscriber::fmt;
 
 pub use tracing::Level;

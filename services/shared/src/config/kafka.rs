@@ -5,6 +5,7 @@ use std::{collections::HashMap, env};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KafkaClusterConfig {
     pub brokers: String,
+    // pub metrics_url: String, // TODO
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,53 +16,58 @@ pub struct KafkaConfig {
 
 const PREFIX: &str = "KAFKA_";
 const BROKER_SUFFIX: &str = "_BROKER_URL";
-const ALL_ENDINGS: [&str; 1] = [BROKER_SUFFIX];
+// const METRICS_SUFFIX: &str = "_METRICS_URL";
+const ALL_ENDINGS: [&str; 1] = [
+    BROKER_SUFFIX,
+    // METRICS_SUFFIX
+]; // TODO perhaps better as enum
 
 impl KafkaConfig {
     pub fn new() -> Self {
         dotenv().ok();
 
-        let mut all_clusters: HashMap<String, KafkaClusterConfig> = HashMap::new();
+        let mut clusters: HashMap<String, KafkaClusterConfig> = HashMap::new();
 
         for (key, value) in env::vars() {
-            if !key.starts_with(PREFIX) {
-                continue;
-            }
+            let rest = match key.strip_prefix(PREFIX) {
+                Some(rest) => rest,
+                None => continue, // Skip keys that dont have this
+            };
 
-            // Skip if the key doesn't end with any of our valid suffixes
-            if !ALL_ENDINGS.iter().any(|suffix| key.ends_with(suffix)) {
-                continue;
-            }
+            let (cluster_name, suffix) = match ALL_ENDINGS
+                .iter()
+                .find_map(|ending| rest.strip_suffix(ending).map(|name| (name, *ending)))
+            {
+                Some((name, suffix)) => (name, suffix),
+                None => continue, // Skip keys that don't end in one of our suffixes
+            };
 
-            let key_without_prefix_opt = key.strip_prefix(PREFIX);
+            let cluster_config = clusters.entry(cluster_name.to_string()).or_default();
 
-            match key_without_prefix_opt {
-                Some(rest) => {
-                    let cluster_name = ALL_ENDINGS
-                        .iter()
-                        .find_map(|ending| rest.strip_suffix(ending));
-
-                    match cluster_name {
-                        Some(name) => {
-                            let cluster_config = KafkaClusterConfig { brokers: value };
-
-                            all_clusters
-                                .entry(name.to_string())
-                                .or_insert(cluster_config);
-                        }
-                        None => continue,
-                    }
+            match suffix {
+                BROKER_SUFFIX => {
+                    cluster_config.brokers = value;
                 }
-                None => continue,
+                // METRICS_SUFFIX => {
+                //     cluster_config.metrics_url = value;
+                // }
+                _ => {}
             }
         }
 
-        Self {
-            clusters: all_clusters,
-        }
+        Self { clusters }
     }
 
     pub fn get_cluster(&self, name: &str) -> Option<&KafkaClusterConfig> {
         self.clusters.get(name)
+    }
+}
+
+impl Default for KafkaClusterConfig {
+    fn default() -> Self {
+        Self {
+            brokers: String::from("BROKER URL NOT SET"),
+            // metrics_url: String::from("METRICS URL NOT SET"),
+        }
     }
 }
