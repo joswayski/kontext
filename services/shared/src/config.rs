@@ -2,7 +2,7 @@ use dotenvy::dotenv;
 use kafka::KafkaConfig;
 use std::env;
 
-mod kafka;
+pub mod kafka;
 pub mod tracing;
 
 #[derive(Debug, Clone)]
