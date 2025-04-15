@@ -60,18 +60,12 @@ fi
 
 echo -e "\n\n${BLUE}🚀 Starting Kontext services...${NC}"
 
-# Build shared library first
-echo -e "\n\n${GREEN}📦 Building shared library...${NC}"
-cd services/shared
-cargo build
-cd ../..
-
 # Start API service if selected
 API_PID=""
 if [ "$RUN_API" = true ] || [ "$RUN_ALL" = true ]; then
     echo -e "\n\n${GREEN}🌐 Starting API service...${NC}"
     cd services/api
-    cargo run &
+    bacon run &
     API_PID=$!
     cd ../..
 fi

@@ -1,15 +1,14 @@
-use ::shared::config;
+use ::shared::config::Config;
 use api::router::create_routes;
 use tokio::signal;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    config::Config::new();
+    let config = Config::init();
 
     // ! TODO: Spawn background task to refresh metadata every 10 seconds
 
-    let port = config::get_port();
-    let addr = format!("0.0.0.0:{}", port);
+    let addr = format!("0.0.0.0:{}", config.port);
     let app = create_routes();
     // ! TODO: set app state
 

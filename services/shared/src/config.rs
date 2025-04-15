@@ -17,7 +17,7 @@ impl Config {
      * Starts up a config with a default port, kafka clients, and tracing config.
      * TODO allow overriding settings in the future
      */
-    pub fn new() -> Self {
+    pub fn init() -> Self {
         dotenv().ok();
 
         let config = Self {
