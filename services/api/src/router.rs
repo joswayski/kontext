@@ -6,8 +6,11 @@ use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::handlers::{fallback_404, fallback_405, health_check, root};
-
+#[derive(Clone)]
+struct AppState {}
 pub fn create_routes() -> Router {
+    let state = AppState {};
+
     Router::new()
         .route("/", get(root))
         .route("/health", get(health_check)) // k8s health check
@@ -20,4 +23,5 @@ pub fn create_routes() -> Router {
                 .layer(CompressionLayer::new())
                 .layer(TimeoutLayer::new(Duration::from_secs(10))),
         )
+        .with_state(state)
 }
