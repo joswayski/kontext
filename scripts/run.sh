@@ -65,7 +65,7 @@ API_PID=""
 if [ "$RUN_API" = true ] || [ "$RUN_ALL" = true ]; then
     echo -e "\n\n${GREEN}🌐 Starting API service...${NC}"
     cd services/api
-    bacon run &
+    bacon run --headless &
     API_PID=$!
     cd ../..
 fi
