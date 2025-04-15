@@ -1,5 +1,7 @@
-use tracing::Level;
+use tracing::Level as TracingLevel;
 use tracing_subscriber::fmt;
+
+pub use tracing::Level;
 
 #[derive(Debug, Clone)]
 pub struct TracingConfig {

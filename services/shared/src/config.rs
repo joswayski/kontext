@@ -14,8 +14,7 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        // Load environment variables from .env file if it exists
-        let _ = dotenv();
+        dotenv().ok();
 
         let config = Self {
             port: env::var("PORT").unwrap_or_else(|_| "4000".to_string()),

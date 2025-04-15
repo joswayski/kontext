@@ -1,11 +1,10 @@
+use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env};
 
-// A single cluster config
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KafkaClusterConfig {
     pub brokers: String,
-    pub metrics_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,44 +13,52 @@ pub struct KafkaConfig {
     pub clusters: HashMap<String, KafkaClusterConfig>,
 }
 
+const PREFIX: &str = "KAFKA_";
+const BROKER_SUFFIX: &str = "_BROKER_URL";
+const ALL_ENDINGS: [&str; 1] = [BROKER_SUFFIX];
+
 impl KafkaConfig {
     pub fn new() -> Self {
-        let mut clusters = HashMap::new();
+        dotenv().ok();
 
-        // Get all environment variables that start with KAFKA_
-        let env_vars: HashMap<String, String> = env::vars()
-            .filter(|(key, _)| key.starts_with("KAFKA_"))
-            .collect();
+        let mut all_clusters: HashMap<String, KafkaClusterConfig> = HashMap::new();
 
-        // Find all unique cluster names (KAFKA_{CLUSTERNAME}_BROKERS)
-        let cluster_names: Vec<String> = env_vars
-            .keys()
-            .filter_map(|key| {
-                key.strip_prefix("KAFKA_")
-                    .and_then(|s| s.split('_').next())
-                    .map(String::from)
-            })
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
+        for (key, value) in env::vars() {
+            if !key.starts_with(PREFIX) {
+                continue;
+            }
 
-        for cluster_name in cluster_names {
-            let brokers = env::var(format!("KAFKA_{}_BROKERS", cluster_name))
-                .unwrap_or_else(|_| "localhost:9092".to_string());
+            // Skip if the key doesn't end with any of our valid suffixes
+            if !ALL_ENDINGS.iter().any(|suffix| key.ends_with(suffix)) {
+                continue;
+            }
 
-            let metrics_url = env::var(format!("KAFKA_{}_METRICS_URL", cluster_name))
-                .unwrap_or_else(|_| format!("http://localhost:8080/metrics/{}", cluster_name));
+            let key_without_prefix_opt = key.strip_prefix(PREFIX);
 
-            clusters.insert(
-                cluster_name.clone(),
-                KafkaClusterConfig {
-                    brokers,
-                    metrics_url,
-                },
-            );
+            match key_without_prefix_opt {
+                Some(rest) => {
+                    let cluster_name = ALL_ENDINGS
+                        .iter()
+                        .find_map(|ending| rest.strip_suffix(ending));
+
+                    match cluster_name {
+                        Some(name) => {
+                            let cluster_config = KafkaClusterConfig { brokers: value };
+
+                            all_clusters
+                                .entry(name.to_string())
+                                .or_insert(cluster_config);
+                        }
+                        None => continue,
+                    }
+                }
+                None => continue,
+            }
         }
 
-        Self { clusters }
+        Self {
+            clusters: all_clusters,
+        }
     }
 
     pub fn get_cluster(&self, name: &str) -> Option<&KafkaClusterConfig> {
