@@ -2,6 +2,9 @@ use ::shared::config::Config;
 use api::router::create_routes;
 use tokio::signal;
 
+#[derive(Clone)]
+struct AppState {}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::init();
@@ -10,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let addr = format!("0.0.0.0:{}", config.port);
     let app = create_routes();
-    // ! TODO: set app state
+
 
     let listener = tokio::net::TcpListener::bind(&addr).await.map_err(|e| {
         tracing::error!("Failed to bind to {}: {}", addr, e);

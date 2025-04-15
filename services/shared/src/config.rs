@@ -39,7 +39,7 @@ fn test_config_defaults() {
     env::remove_var("KAFKA_CLUSTER1_BROKERS");
     env::remove_var("KAFKA_CLUSTER1_METRICS_URL");
 
-    let config = Config::new();
+    let config = Config::init();
 
     // Default port
     assert_eq!(config.port, "4000");
@@ -60,7 +60,7 @@ fn test_config_from_env() {
     env::set_var("KAFKA_CLUSTER2_BROKERS", "kafka2:9092,kafka3:9092");
     env::set_var("KAFKA_CLUSTER2_METRICS_URL", "http://cluster2:8080/metrics");
 
-    let config = Config::new();
+    let config = Config::init();
 
     // Test port
     assert_eq!(config.port, "8080");
