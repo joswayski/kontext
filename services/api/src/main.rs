@@ -12,15 +12,6 @@ struct AppState {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::init();
 
-    // Initialize Kafka consumer
-    let kafka_consumer = if let Some(cluster) = config.kafka.get_cluster("CLUSTER1") {
-        shared::clients::kafka::KafkaClients::create_consumer(cluster.brokers.clone()).map(Arc::new)
-    } else {
-        None
-    };
-
-    let app_state = AppState { kafka_consumer };
-
     let app = create_routes();
 
     let addr = format!("0.0.0.0:{}", config.port);

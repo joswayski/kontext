@@ -1,6 +1,4 @@
-use qdrant_client::prelude::*;
 use rdkafka::{consumer::BaseConsumer, ClientConfig};
-use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 
 pub struct AllClients {
     pub kafka: BaseConsumer,
@@ -23,9 +21,9 @@ impl AllClients {
         }
     }
 
-    pub fn init(&self) -> self {
-        AllClients {
-            kafka: self::AllClients::create_consumer(),
-        }
-    }
+    // pub fn init(&self) -> self {
+    //     AllClients {
+    //         kafka: self::AllClients::create_consumer(),
+    //     }
+    // }
 }

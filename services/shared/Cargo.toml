@@ -7,8 +7,7 @@ edition = "2021"
 dotenvy = "0.15.7"
 futures = "0.3.31"
 rdkafka = "0.37.0"
-sqlx = { version = "0.8.3", features = ["mysql", "runtime-tokio"] }
-qdrant-client = "1.7.0"
+sqlx = { version = "0.8.3", features = ["postgres", "runtime-tokio"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 tracing = "0.1"

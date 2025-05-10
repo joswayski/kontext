@@ -37,25 +37,24 @@ services:
     depends_on:
       - redpanda
 
-  mysql:
-    image: mysql:8.0
+  postgres:
+    image: postgres:16
     platform: linux/amd64
-    command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: kontext
-      MYSQL_USER: kontext
-      MYSQL_PASSWORD: kontext
+      POSTGRES_USER: kontext
+      POSTGRES_PASSWORD: kontext
+      POSTGRES_DB: kontext
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U kontext"]
       interval: 5s
       timeout: 5s
       retries: 5
+
   qdrant:
     image: qdrant/qdrant:latest
     restart: always
@@ -79,6 +78,6 @@ configs:
       log_level: INFO
 
 volumes:
-  mysql_data:
+  postgres_data:
   redpanda_data:
   qdrant_data:
