@@ -38,41 +38,12 @@ pub struct CreateUserInput {
     pub password_confirmation: String,
 }
 
-pub async fn test_handler(Json(payload): Json<CreateUserInput>) -> impl IntoResponse {
+pub async fn test_handler(Json(payload): Json<CreateUserInput>) -> Result<impl IntoResponse, AppError> {
     // --- Validation Step ---
-    if let Err(validation_errors) = payload.validate() {
-        // Validation failed, return a user-friendly error response
-        println!("Validation failed: {:?}", validation_errors); // Log details server-side
-
-        // Convert validation errors into a structured JSON response
-        // The structure here is up to you, but field-level errors are common.
-        let errors = validation_errors
-            .field_errors()
-            .into_iter()
-            .map(|(field, errors)| {
-                let messages: Vec<String> = errors
-                    .iter()
-                    .map(|e| {
-                        // Use the custom message if provided, otherwise format a default
-                        e.message
-                            .as_ref()
-                            .map(|m| m.to_string())
-                            .unwrap_or_else(|| format!("Validation failed for rule: {:?}", e.code))
-                    })
-                    .collect();
-                (field, messages)
-            })
-            .collect::<std::collections::HashMap<_, _>>();
-
-        // Return a 400 Bad Request with the errors
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "message": "Input validation failed",
-                "errors": errors
-            })),
-        ));
-    }
+    // The `?` operator will convert ValidationErrors into AppError::Validation
+    // thanks to the `From<ValidationErrors> for AppError` implementation.
+    // Axum will then use the `IntoResponse for AppError` implementation to create the HTTP response.
+    payload.validate()?;
 
     // --- Validation Passed ---
     // Proceed with your application logic (e.g., save the user)
@@ -101,41 +72,62 @@ impl From<ValidationErrors> for AppError {
     }
 }
 
-// This implementation tells Axum how to convert a JSON rejection into a response.
-impl IntoResponse for JsonRejection {
+// This implementation tells Axum how to convert AppError into a response.
+impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, message) = match self {
-            JsonRejection::JsonDataError(e) => {
-                // Error deserializing - e.g., wrong types
-                (StatusCode::BAD_REQUEST, format!("Invalid JSON data: {}", e))
+        match self {
+            AppError::Json(rejection) => {
+                let status = match rejection {
+                    JsonRejection::JsonDataError(_) => StatusCode::BAD_REQUEST,
+                    JsonRejection::JsonSyntaxError(_) => StatusCode::BAD_REQUEST,
+                    JsonRejection::MissingJsonContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                    // axum::extract::rejection::JsonRejection is non_exhaustive.
+                    // This handles other variants, including potential future ones or BytesRejection
+                    // from the 'json-with-graceful-shutdown' feature.
+                    _ => StatusCode::BAD_REQUEST,
+                };
+                // The `Display` impl for `JsonRejection` provides a user-friendly error message,
+                // e.g., "Failed to deserialize the JSON body into the target type: missing field `email` at line X column Y".
+                let body = Json(json!({
+                    "message": rejection.to_string()
+                    // If you want to add other fields, you can do so here, for example:
+                    // "error_type": "JsonProcessingError",
+                    // "request_id": "some-uuid" // If you have request tracing
+                }));
+                (status, body).into_response()
             }
-            JsonRejection::JsonSyntaxError(e) => {
-                // Error in JSON syntax - e.g., trailing comma, missing quotes
+            AppError::Validation(validation_errors) => {
+                // Convert validation errors into a structured JSON response
+                let errors = validation_errors
+                    .field_errors()
+                    .into_iter()
+                    .map(|(field, field_errors_list)| {
+                        let messages: Vec<String> = field_errors_list
+                            .iter()
+                            .map(|e| {
+                                e.message
+                                    .as_ref()
+                                    .map(|m| m.to_string())
+                                    .unwrap_or_else(|| {
+                                        // Provide a default message if none is set in the validator
+                                        format!("Validation failed for rule: {:?}", e.code)
+                                    })
+                            })
+                            .collect();
+                        (field.to_string(), messages) // Ensure field name is a String for HashMap key
+                    })
+                    .collect::<std::collections::HashMap<String, Vec<String>>>();
+
+                // Return a 400 Bad Request with the validation errors
                 (
                     StatusCode::BAD_REQUEST,
-                    format!("Invalid JSON syntax: {}", e),
+                    Json(json!({
+                        "message": "Input validation failed",
+                        "errors": errors
+                    })),
                 )
+                    .into_response()
             }
-            JsonRejection::MissingJsonContentType(_) => {
-                // Missing Content-Type header
-                (
-                    StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                    "Missing 'Content-Type: application/json' header".to_string(),
-                )
-            }
-            // Catch-all for other potential JSON rejection reasons
-            _ => (
-                StatusCode::BAD_REQUEST,
-                format!("Unknown JSON error: {}", self),
-            ),
-        };
-
-        // Simple JSON response
-        let body = Json(json!({
-            "message": "Failed to process request body", // General message
-            "error": message // Specific reason
-        }));
-
-        (status, body).into_response()
+        }
     }
 }
