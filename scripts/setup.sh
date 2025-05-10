@@ -26,7 +26,7 @@ cd ../..
 # Shared is not needed, as it is a library and will be rebuilt by the API service
 
 # Start required infrastructure
-echo -e "\n\n${GREEN}🐳 Starting infrastructure (Kafka, MySQL, Qdrant)...${NC}"
+echo -e "\n\n${GREEN}🐳 Starting infrastructure (Kafka, Postgres)...${NC}"
 docker compose up -d
 
 echo -e "\n\n${GREEN}✅ Setup complete!${NC}"

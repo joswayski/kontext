@@ -1,24 +1,20 @@
-use ::shared::config;
+use ::shared::config::Config;
 use api::router::create_routes;
+use std::sync::Arc;
 use tokio::signal;
+
+#[derive(Clone)]
+struct AppState {
+    kafka_consumer: Option<Arc<rdkafka::consumer::BaseConsumer>>,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .with_level(true)
-        .with_ansi(true)
-        .init();
+    let config = Config::init();
 
-    match config::load_env() {
-        Some(env_path) => tracing::info!("Loaded .env file from: {:?}", env_path),
-        None => tracing::warn!("No .env file found!"),
-    }
-
-    let port = config::get_port();
-    let addr = format!("0.0.0.0:{}", port);
     let app = create_routes();
 
+    let addr = format!("0.0.0.0:{}", config.port);
     let listener = tokio::net::TcpListener::bind(&addr).await.map_err(|e| {
         tracing::error!("Failed to bind to {}: {}", addr, e);
         e
