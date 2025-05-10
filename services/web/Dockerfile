@@ -1,32 +1,22 @@
-# Build stage
-FROM node:22-slim AS builder
-
-# Set working directory
-WORKDIR /usr/src
-
-# Copy package files
-COPY services/web/package*.json ./
-
-# Install dependencies
+FROM node:22-alpine AS development-dependencies-env
+COPY . /app
+WORKDIR /app
 RUN npm ci
 
-# Copy source files
-COPY services/web/ ./
+FROM node:22-alpine AS production-dependencies-env
+COPY ./package.json package-lock.json /app/
+WORKDIR /app
+RUN npm ci --omit=dev
 
-# Build the application
+FROM node:22-alpine AS build-env
+COPY . /app/
+COPY --from=development-dependencies-env /app/node_modules /app/node_modules
+WORKDIR /app
 RUN npm run build
 
-# Production stage
-FROM node:22-slim
-
-# Set working directory
-WORKDIR /usr/src
-
-# Copy built files from builder
-COPY --from=builder /usr/src/.output ./.output
-
-# Expose the port
-EXPOSE 3000
-
-# Start the application
-CMD ["node", ".output/server/index.mjs"]
+FROM node:22-alpine
+COPY ./package.json package-lock.json /app/
+COPY --from=production-dependencies-env /app/node_modules /app/node_modules
+COPY --from=build-env /app/build /app/build
+WORKDIR /app
+CMD ["npm", "run", "start"]

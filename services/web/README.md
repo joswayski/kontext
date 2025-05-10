@@ -1,72 +1,87 @@
-# Welcome to TanStack.com!
+# Welcome to React Router!
 
-This site is built with TanStack Router!
+A modern, production-ready template for building full-stack React applications using React Router.
 
-- [TanStack Router Docs](https://tanstack.com/router)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
 
-It's deployed automagically with Netlify!
+## Features
 
-- [Netlify](https://netlify.com/)
+- 🚀 Server-side rendering
+- ⚡️ Hot Module Replacement (HMR)
+- 📦 Asset bundling and optimization
+- 🔄 Data loading and mutations
+- 🔒 TypeScript by default
+- 🎉 TailwindCSS for styling
+- 📖 [React Router docs](https://reactrouter.com/)
 
-## Development
+## Getting Started
 
-From your terminal:
+### Installation
 
-```sh
-pnpm install
-pnpm dev
+Install the dependencies:
+
+```bash
+npm install
 ```
 
-This starts your app in development mode, rebuilding assets on file changes.
+### Development
 
-## Editing and previewing the docs of TanStack projects locally
+Start the development server with HMR:
 
-The documentations for all TanStack projects except for `React Charts` are hosted on [https://tanstack.com](https://tanstack.com), powered by this TanStack Router app.
-In production, the markdown doc pages are fetched from the GitHub repos of the projects, but in development they are read from the local file system.
-
-Follow these steps if you want to edit the doc pages of a project (in these steps we'll assume it's [`TanStack/form`](https://github.com/tanstack/form)) and preview them locally :
-
-1. Create a new directory called `tanstack`.
-
-```sh
-mkdir tanstack
+```bash
+npm run dev
 ```
 
-2. Enter the directory and clone this repo and the repo of the project there.
+Your application will be available at `http://localhost:5173`.
 
-```sh
-cd tanstack
-git clone git@github.com:TanStack/tanstack.com.git
-git clone git@github.com:TanStack/form.git
+## Building for Production
+
+Create a production build:
+
+```bash
+npm run build
 ```
 
-> [!NOTE]
-> Your `tanstack` directory should look like this:
->
-> ```
-> tanstack/
->    |
->    +-- form/
->    |
->    +-- tanstack.com/
-> ```
+## Deployment
 
-> [!WARNING]
-> Make sure the name of the directory in your local file system matches the name of the project's repo. For example, `tanstack/form` must be cloned into `form` (this is the default) instead of `some-other-name`, because that way, the doc pages won't be found.
+### Docker Deployment
 
-3. Enter the `tanstack/tanstack.com` directory, install the dependencies and run the app in dev mode:
+To build and run using Docker:
 
-```sh
-cd tanstack.com
-pnpm i
-# The app will run on https://localhost:3000 by default
-pnpm dev
+```bash
+docker build -t my-app .
+
+# Run the container
+docker run -p 3000:3000 my-app
 ```
 
-4. Now you can visit http://localhost:3000/form/latest/docs/overview in the browser and see the changes you make in `tanstack/form/docs`.
+The containerized application can be deployed to any platform that supports Docker, including:
 
-> [!NOTE]
-> The updated pages need to be manually reloaded in the browser.
+- AWS ECS
+- Google Cloud Run
+- Azure Container Apps
+- Digital Ocean App Platform
+- Fly.io
+- Railway
 
-> [!WARNING]
-> You will need to update the `docs/config.json` file (in the project's repo) if you add a new doc page!
+### DIY Deployment
+
+If you're familiar with deploying Node applications, the built-in app server is production-ready.
+
+Make sure to deploy the output of `npm run build`
+
+```
+├── package.json
+├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
+├── build/
+│   ├── client/    # Static assets
+│   └── server/    # Server-side code
+```
+
+## Styling
+
+This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+
+---
+
+Built with ❤️ using React Router.
