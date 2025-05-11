@@ -1,5 +1,4 @@
 use dotenvy::dotenv;
-use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env};
 

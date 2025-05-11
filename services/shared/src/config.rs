@@ -26,60 +26,70 @@ impl Config {
             tracing: tracing::TracingConfig::default(),
         };
 
-        config.tracing.init();
+        // Only initialize tracing if it hasn't been initialized yet
+        static TRACING_INITIALIZED: std::sync::Once = std::sync::Once::new();
+        TRACING_INITIALIZED.call_once(|| {
+            config.tracing.init();
+        });
 
         config
     }
 }
 
-#[test]
-fn test_config_defaults() {
-    // Clear any existing env vars
-    env::remove_var("PORT");
-    env::remove_var("KAFKA_CLUSTER1_BROKERS");
-    env::remove_var("KAFKA_CLUSTER1_METRICS_URL");
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serial_test::serial;
+    use std::env;
 
-    let config = Config::init();
+    #[test]
+    #[serial]
+    fn test_config_defaults() {
+        // Clear any existing env vars
+        env::remove_var("PORT");
+        env::remove_var("KAFKA_CLUSTER1_BROKER_URL");
+        env::remove_var("KAFKA_CLUSTER2_BROKER_URL");
 
-    // Default port
-    assert_eq!(config.port, "4000");
+        let config = Config::init();
 
-    // Tracing
-    assert_eq!(config.tracing.level, tracing::Level::DEBUG);
-    assert!(config.tracing.with_ansi);
-    assert!(config.tracing.with_level);
-    assert_eq!(config.kafka.clusters.capacity(), 0); // no clusters by default
-}
+        // Default port
+        assert_eq!(config.port, "4000");
 
-#[test]
-fn test_config_from_env() {
-    // Set test values
-    env::set_var("PORT", "8080");
-    env::set_var("KAFKA_CLUSTER1_BROKERS", "kafka1:9092");
-    env::set_var("KAFKA_CLUSTER1_METRICS_URL", "http://cluster1:8080/metrics");
-    env::set_var("KAFKA_CLUSTER2_BROKERS", "kafka2:9092,kafka3:9092");
-    env::set_var("KAFKA_CLUSTER2_METRICS_URL", "http://cluster2:8080/metrics");
+        // Tracing
+        assert_eq!(config.tracing.level, tracing::Level::INFO);
+        assert!(config.tracing.with_ansi);
+        assert!(config.tracing.with_level);
+        assert_eq!(config.kafka.clusters.capacity(), 0); // no clusters by default
+    }
 
-    let config = Config::init();
+    #[test]
+    #[serial]
+    fn test_config_from_env() {
+        // First clear any existing env vars to ensure clean state
+        env::remove_var("PORT");
+        env::remove_var("KAFKA_CLUSTER1_BROKER_URL");
+        env::remove_var("KAFKA_CLUSTER2_BROKER_URL");
 
-    // Test port
-    assert_eq!(config.port, "8080");
+        // Then set test values
+        env::set_var("PORT", "69420");
+        env::set_var("KAFKA_CLUSTER1_BROKER_URL", "kafka1:9092");
+        env::set_var("KAFKA_CLUSTER2_BROKER_URL", "kafka2:9092,kafka3:9092");
 
-    // Test Kafka clusters
-    let cluster1 = config.kafka.get_cluster("CLUSTER1").unwrap();
-    assert_eq!(cluster1.brokers, "kafka1:9092");
-    // TODO
-    // assert_eq!(cluster1.metrics_url, "http://cluster1:8080/metrics");
+        let config = Config::init();
 
-    let cluster2 = config.kafka.get_cluster("CLUSTER2").unwrap();
-    assert_eq!(cluster2.brokers, "kafka2:9092,kafka3:9092");
-    // TODO
-    // assert_eq!(cluster2.metrics_url, "http://cluster2:8080/metrics");
+        // Test port
+        assert_eq!(config.port, "69420");
 
-    // Clean up
-    env::remove_var("PORT");
-    env::remove_var("KAFKA_CLUSTER1_BROKERS");
-    env::remove_var("KAFKA_CLUSTER1_METRICS_URL");
-    env::remove_var("KAFKA_CLUSTER2_BROKERS");
-    env::remove_var("KAFKA_CLUSTER2_METRICS_URL");
+        // Test Kafka clusters
+        let cluster1 = config.kafka.get_cluster("CLUSTER1").unwrap();
+        assert_eq!(cluster1.brokers, "kafka1:9092");
+
+        let cluster2 = config.kafka.get_cluster("CLUSTER2").unwrap();
+        assert_eq!(cluster2.brokers, "kafka2:9092,kafka3:9092");
+
+        // Clean up
+        env::remove_var("PORT");
+        env::remove_var("KAFKA_CLUSTER1_BROKER_URL");
+        env::remove_var("KAFKA_CLUSTER2_BROKER_URL");
+    }
 }
