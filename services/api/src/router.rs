@@ -2,7 +2,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
@@ -10,9 +10,13 @@ use tower_http::trace::TraceLayer;
 
 use crate::handlers::{fallback_404, fallback_405, health_check, root, test_handler};
 #[derive(Clone)]
-struct AppState {}
+struct AppState {
+    kafka_consumer: Option<Arc<rdkafka::consumer::BaseConsumer>>,
+}
 pub fn create_routes() -> Router {
-    let state = AppState {};
+    let state = AppState {
+        kafka_consumer: None,
+    };
 
     Router::new()
         .route("/", get(root))

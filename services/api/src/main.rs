@@ -1,12 +1,6 @@
 use ::shared::config::Config;
 use api::router::create_routes;
-use std::sync::Arc;
 use tokio::signal;
-
-#[derive(Clone)]
-struct AppState {
-    kafka_consumer: Option<Arc<rdkafka::consumer::BaseConsumer>>,
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
