@@ -3,19 +3,24 @@ use kafka::KafkaConfig;
 use std::env;
 
 pub mod kafka;
+pub mod postgres;
 pub mod tracing;
+
+use postgres::PostgresConfig;
 
 #[derive(Debug, Clone)]
 pub struct Config {
     pub port: String,
     pub kafka: KafkaConfig,
     pub tracing: tracing::TracingConfig,
+    pub postgres: PostgresConfig,
 }
 
 impl Config {
     /**
      * Starts up a config with a default port, kafka clients, and tracing config.
      * TODO allow overriding settings in the future
+     * Will panic if required connections (Kafka clusters, Postgres) cannot be established.
      */
     pub fn init() -> Self {
         dotenv().ok();
@@ -24,6 +29,7 @@ impl Config {
             port: env::var("PORT").unwrap_or_else(|_| "4000".to_string()),
             kafka: KafkaConfig::new(),
             tracing: tracing::TracingConfig::default(),
+            postgres: PostgresConfig::new(),
         };
 
         // Only initialize tracing if it hasn't been initialized yet

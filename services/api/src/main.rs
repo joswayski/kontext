@@ -6,7 +6,7 @@ use tokio::signal;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::init();
 
-    let app = create_routes();
+    let app = create_routes(&config).await;
 
     let addr = format!("0.0.0.0:{}", config.port);
     let listener = tokio::net::TcpListener::bind(&addr).await.map_err(|e| {
