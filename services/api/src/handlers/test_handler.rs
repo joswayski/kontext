@@ -1,7 +1,7 @@
 use axum::{extract::rejection::JsonRejection, http::StatusCode, response::IntoResponse, Json};
 use serde::Deserialize;
 use serde_json::json;
-use validator::{Validate, ValidationErrors};
+use validator::Validate;
 
 #[derive(Deserialize, Validate)]
 pub struct CreateUserInput {
