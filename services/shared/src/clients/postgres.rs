@@ -1,34 +1,30 @@
 use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
 use tracing;
 
 use crate::config::postgres::PostgresConfig;
 
 pub struct PostgresClient {
-    config: PostgresConfig,
-    pool: Option<sqlx::PgPool>,
+    pool: PgPool,
 }
 
 impl PostgresClient {
-    pub fn new(config: PostgresConfig) -> Self {
-        Self { config, pool: None }
-    }
+    pub async fn new(config: &PostgresConfig) -> Self {
+        let pool = match PgPoolOptions::new()
+            .max_connections(config.max_connections)
+            .connect(&config.url)
+            .await
+        {
+            Ok(p) => {
+                tracing::info!("Successfully connected to Postgres at {}", &config.url);
+                p
+            }
+            Err(e) => {
+                tracing::error!("Failed to connect to Postgres at {}: {}", &config.url, e);
+                panic!("Failed to connect to Postgres: {}", e);
+            }
+        };
 
-    /// Creates or returns an existing connection pool
-    pub async fn get_pool(&mut self) -> Result<&sqlx::PgPool, sqlx::Error> {
-        if self.pool.is_none() {
-            let pool = PgPoolOptions::new()
-                .max_connections(self.config.max_connections)
-                .connect(&self.config.url)
-                .await
-                .map_err(|e| {
-                    tracing::error!("Failed to connect to Postgres: {}", e);
-                    e
-                })?;
-
-            tracing::info!("Successfully connected to Postgres");
-            self.pool = Some(pool);
-        }
-
-        Ok(self.pool.as_ref().unwrap())
+        Self { pool }
     }
 }

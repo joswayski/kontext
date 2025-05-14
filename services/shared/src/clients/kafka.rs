@@ -1,18 +1,16 @@
 use rdkafka::{
-    admin::{AdminClient, AdminOptions, NewTopic, TopicReplication},
+    admin::AdminClient,
     client::DefaultClientContext,
     config::{ClientConfig, FromClientConfig},
-    consumer::{BaseConsumer, Consumer},
+    consumer::BaseConsumer,
     error::KafkaError,
 };
 
-use std::time::Duration;
 use tracing;
 
 use crate::config::kafka::{KafkaClusterConfig, KafkaConfig};
 
 struct ClusterClients {
-    config: KafkaClusterConfig,
     consumer: BaseConsumer,
     admin: AdminClient<DefaultClientContext>,
 }
@@ -49,11 +47,7 @@ impl ClusterClients {
             e
         })?;
 
-        Ok(Self {
-            config: config.clone(),
-            consumer,
-            admin,
-        })
+        Ok(Self { consumer, admin })
     }
 }
 
@@ -62,101 +56,42 @@ pub struct KafkaClient {
 }
 
 impl KafkaClient {
-    pub fn new(config: KafkaConfig) -> Result<Self, KafkaError> {
-        let mut clusters = std::collections::HashMap::new();
+    pub fn new(config: KafkaConfig) -> Self {
+        let mut cluster_clients_map = std::collections::HashMap::new();
 
-        for (name, cluster_config) in config.clusters {
-            let clients = ClusterClients::new(&name, &cluster_config)?;
-            clusters.insert(name, clients);
-        }
-
-        Ok(Self { clusters })
-    }
-
-    fn get_cluster(&self, cluster_name: &str) -> Result<&ClusterClients, KafkaError> {
-        self.clusters.get(cluster_name).ok_or_else(|| {
-            let err = format!("Cluster {} not found", cluster_name);
-            tracing::error!("{}", err);
-            KafkaError::ClientCreation(err)
-        })
-    }
-
-    /// Lists all topics in a cluster
-    pub async fn list_topics(&self, cluster_name: &str) -> Result<Vec<String>, KafkaError> {
-        let cluster = self.get_cluster(cluster_name)?;
-        let metadata = cluster
-            .consumer
-            .fetch_metadata(None, Duration::from_secs(10))?;
-
-        Ok(metadata
-            .topics()
-            .iter()
-            .map(|topic| topic.name().to_string())
-            .collect())
-    }
-
-    /// Gets consumer group information for a cluster
-    pub async fn list_consumer_groups(
-        &self,
-        cluster_name: &str,
-    ) -> Result<Vec<String>, KafkaError> {
-        // For now, just return our known consumer group
-        // TODO: Implement proper consumer group listing using the admin client
-        Ok(vec![format!("kontext-{}", cluster_name)])
-    }
-
-    /// Gets detailed information about a specific topic
-    pub async fn describe_topic(
-        &self,
-        cluster_name: &str,
-        topic_name: &str,
-    ) -> Result<(), KafkaError> {
-        let cluster = self.get_cluster(cluster_name)?;
-        let metadata = cluster
-            .consumer
-            .fetch_metadata(Some(topic_name), Duration::from_secs(10))?;
-
-        if let Some(topic) = metadata.topics().iter().find(|t| t.name() == topic_name) {
-            tracing::info!("Topic {} details:", topic_name);
-            tracing::info!("  Partitions: {}", topic.partitions().len());
-            for partition in topic.partitions() {
-                tracing::info!(
-                    "    Partition {}: Leader {}",
-                    partition.id(),
-                    partition.leader()
-                );
+        for (cluster_name, cluster_config) in config.clusters {
+            match ClusterClients::new(&cluster_name, &cluster_config) {
+                Ok(clients) => {
+                    tracing::info!(
+                        "Successfully created Kafka clients for cluster {}",
+                        cluster_name
+                    );
+                    cluster_clients_map.insert(cluster_name.clone(), clients);
+                }
+                Err(e) => {
+                    // Panic here if a cluster client fails to initialize
+                    panic!(
+                        "Failed to create Kafka clients for cluster {}: {}. Aborting KafkaClient creation.",
+                        cluster_name,
+                        e
+                    );
+                }
             }
         }
 
-        Ok(())
+        Self {
+            clusters: cluster_clients_map,
+        }
     }
 
-    /// Creates a new topic
-    pub async fn create_topic(
+    pub fn get_admin_client(
         &self,
         cluster_name: &str,
-        topic_name: &str,
-        partitions: i32,
-        replication_factor: i32,
-    ) -> Result<(), KafkaError> {
-        let cluster = self.get_cluster(cluster_name)?;
-        let topic = NewTopic::new(
-            topic_name,
-            partitions,
-            TopicReplication::Fixed(replication_factor),
-        );
-        let results = cluster
-            .admin
-            .create_topics(&[topic], &AdminOptions::new())
-            .await?;
+    ) -> Option<&AdminClient<DefaultClientContext>> {
+        self.clusters.get(cluster_name).map(|cc| &cc.admin)
+    }
 
-        for result in results {
-            match result {
-                Ok(_) => tracing::info!("Successfully created topic {}", topic_name),
-                Err((name, e)) => tracing::error!("Failed to create topic {}: {}", name, e),
-            }
-        }
-
-        Ok(())
+    pub fn get_consumer(&self, cluster_name: &str) -> Option<&BaseConsumer> {
+        self.clusters.get(cluster_name).map(|cc| &cc.consumer)
     }
 }
