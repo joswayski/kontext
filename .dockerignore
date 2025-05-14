@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+**/node_modules
+npm-debug.log
+**/npm-debug.log
+
+# Build outputs
+dist
+**/dist
+.output
+**/.output
+target
+**/target
+Cargo.lock
+**/Cargo.lock
+*.rs.bk
+**/*.rs.bk
+
+# Version control
+.git
+.gitignore
+**/.git
+**/.gitignore
+
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Documentation
+*.md
+**/*.md
+
+# IDE files
+.idea
+.vscode
+**/.idea
+**/.vscode
+
+# OS files
+.DS_Store
+**/.DS_Store 
