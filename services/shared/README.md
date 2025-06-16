@@ -1,8 +1,6 @@
 ### Shared
 
-This crate is shared between all services on the backend.
+This crate is shared between all services on the backend (as of now this is just the API).
 
-- **Kafka**: Kafka client for producing and consuming messages.
-- **MySQL**: MySQL client for reading and writing to the database.
 
-TBD various utils.
+It has a Kafka and Postgres client as well as shared utils.
