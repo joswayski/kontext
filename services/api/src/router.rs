@@ -17,21 +17,21 @@ use shared::{
 
 #[derive(Clone)]
 struct AppState {
-    kafka: Arc<KafkaClient>,
-    postgres: Arc<PostgresClient>,
+    // kafka: Arc<KafkaClient>,
+    // postgres: Arc<PostgresClient>,
 }
 
 impl AppState {
     async fn new(config: &Config) -> Self {
         Self {
-            kafka: Arc::new(KafkaClient::new(&config.kafka).await),
-            postgres: Arc::new<PostgresClient>(PostgresClient::new(&config.postgres).await),
+            // kafka: Arc::new(KafkaClient::new(&config.kafka).await),
+            // postgres: Arc::new<PostgresClient>(PostgresClient::new(&config.postgres).await),
         }
     }
 }
 
 pub async fn create_routes(config: &Config) -> Router {
-    let state = AppState::new(&config).await;
+    // let state = AppState::new(&config).await;
 
     Router::new()
         .route("/", get(root))
@@ -46,5 +46,5 @@ pub async fn create_routes(config: &Config) -> Router {
                 .layer(CompressionLayer::new())
                 .layer(TimeoutLayer::new(Duration::from_secs(10))),
         )
-        .with_state(state)
+        // .with_state(state)
 }

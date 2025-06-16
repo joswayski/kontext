@@ -1,24 +1,73 @@
 use axum::{extract::rejection::JsonRejection, http::StatusCode, response::IntoResponse, Json};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
-use validator::Validate;
+use std::collections::HashMap;
 
-#[derive(Deserialize, Validate)]
+#[derive(Deserialize, Serialize)]
 pub struct CreateUserInput {
-    #[validate(email(message = "Please provide a valid email address."))]
     pub email: String,
-
-    #[validate(length(min = 8, message = "Password must be at least 8 characters long."))]
     pub password: String,
-
-    #[validate(range(min = 18, max = 120, message = "Age must be between 18 and 120."))]
     pub age: u32,
-
-    #[validate(url(message = "Please provide a valid URL for your website."))]
-    pub website: Option<String>, // Can validate Option fields
-
-    #[validate(must_match(other = "password", message = "Password confirmation does not match."))]
+    pub website: Option<String>,
     pub password_confirmation: String,
+}
+
+#[derive(Serialize)]
+pub struct FieldError {
+    pub code: &'static str,
+    pub message: String,
+}
+
+impl CreateUserInput {
+    pub fn validate(&self) -> Result<(), HashMap<&'static str, Vec<FieldError>>> {
+        let mut errors: HashMap<&'static str, Vec<FieldError>> = HashMap::new();
+
+        if !self.email.contains('@') {
+            errors.entry("email").or_default().push(FieldError {
+                code: "email",
+                message: "Please provide a valid email address.".to_string(),
+            });
+        }
+
+        if self.password.len() < 8 {
+            errors.entry("password").or_default().push(FieldError {
+                code: "length",
+                message: "Password must be at least 8 characters long.".to_string(),
+            });
+        }
+
+        if self.password != self.password_confirmation {
+            errors
+                .entry("password_confirmation")
+                .or_default()
+                .push(FieldError {
+                    code: "must_match",
+                    message: "Password confirmation does not match.".to_string(),
+                });
+        }
+
+        if !(18..=120).contains(&self.age) {
+            errors.entry("age").or_default().push(FieldError {
+                code: "range",
+                message: "Age must be between 18 and 120.".to_string(),
+            });
+        }
+
+        if let Some(website_url) = &self.website {
+            if !website_url.starts_with("http://") && !website_url.starts_with("https://") {
+                errors.entry("website").or_default().push(FieldError {
+                    code: "url",
+                    message: "Please provide a valid URL for your website.".to_string(),
+                });
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
 }
 
 pub async fn test_handler(
@@ -33,7 +82,6 @@ pub async fn test_handler(
                     "error": "Invalid request body",
                     "message": "Failed to parse request body. Please ensure all required fields are provided.",
                     "details": err.to_string(),
-                    "documentation": "https://josevalerio.com/kontext/api"
                 })),
             );
         }
@@ -46,18 +94,12 @@ pub async fn test_handler(
                 "error": "Validation failed",
                 "message": "Request validation failed. Please check the details.",
                 "details": errors,
-                "documentation": "https://your-api-docs.com/schemas/create-user"
             })),
         );
     }
 
-    println!(
-        "User creation request validated successfully for email: {}",
-        payload.email
-    );
-
     (
         StatusCode::CREATED,
-        Json(json!({"message": "User created"})),
+        Json(json!({"message": "User created", "user": &payload})),
     )
 }
