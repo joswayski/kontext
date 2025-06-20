@@ -93,4 +93,4 @@ volumes:
 
 networks:
   kontext-network:
-    driver: bridge 
+    driver: bridge
