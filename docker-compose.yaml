@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # Redpanda (Kafka-compatible) - using official configuration
+  redpanda-0:
+    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
+    container_name: kontext-redpanda
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda-0:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda-0:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda-0:33145
+      - --advertise-rpc-addr redpanda-0:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=info
+    ports:
+      - "18081:18081"  # Schema Registry (external)
+      - "18082:18082"  # REST Proxy (external)
+      - "19092:19092"  # Kafka API (external)
+      - "19644:9644"   # Metrics (external)
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    networks:
+      - kontext-network
+
+  # Redpanda Console (optional but useful for management)
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:v3.1.1
+    container_name: kontext-redpanda-console
+    networks:
+      - kontext-network
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["redpanda-0:9092"]
+        schemaRegistry:
+          enabled: true
+          urls: ["http://redpanda-0:8081"]
+        redpanda:
+          adminApi:
+            enabled: true
+            urls: ["http://redpanda-0:9644"]
+    ports:
+      - "8081:8080"  # Console UI - changed to avoid conflict
+    depends_on:
+      - redpanda-0
+
+  # Go API Backend
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: kontext-api
+    ports:
+      - "3001:8080"  # API exposed on 3001, internal port 8080
+    environment:
+      - KAFKA_BROKERS=redpanda-0:9092
+      - REDPANDA_ADMIN_URL=http://redpanda-0:9644
+    depends_on:
+      - redpanda-0
+    volumes:
+      - ./services/api:/app
+    networks:
+      - kontext-network
+
+  # React Router Web App
+  web:
+    build:
+      context: ./services/web
+      dockerfile: Dockerfile
+    container_name: kontext-web
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=http://api:8080
+      - NODE_ENV=production
+    depends_on:
+      - api
+    networks:
+      - kontext-network
+
+volumes:
+  redpanda-data:
+    driver: local
+
+networks:
+  kontext-network:
+    driver: bridge 
