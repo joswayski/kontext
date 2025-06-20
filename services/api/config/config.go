@@ -1,8 +1,11 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds all configuration for the application
@@ -29,6 +32,13 @@ type KafkaConfig struct {
 }
 
 func Load() *Config {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Warning: .env file not found: %v", err)
+	}
+	log.Println("Loaded .env file")
+
 	return &Config{
 		Server: ServerConfig{
 			Port: getEnv("PORT", "4000"),

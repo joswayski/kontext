@@ -13,6 +13,7 @@ func main() {
 	r.GET("/", handlers.RootHandler)
 	r.GET("/health", handlers.HealthHandler)
 	r.NoRoute(handlers.NotFoundHandler(r))
+	r.NoMethod(handlers.NotFoundHandler(r))
 
 	r.Run(":" + cfg.Server.Port)
 }
