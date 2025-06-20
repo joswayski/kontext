@@ -1,16 +1,24 @@
 package main
 
 import (
-	"net/http"
+	"fmt"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joswayski/kontext/handlers"
 )
 
 func main() {
-	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "Hello")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "4000"
+	}
+	fmt.Println("Starting server on port ", port)
 
-	})
-	r.Run("0.0.0.0:4000")
+	r := gin.Default()
+	r.GET("/", handlers.RootHandler)
+	r.GET("/health", handlers.HealthHandler)
+	r.NoRoute(handlers.NotFoundHandler(r))
+
+	r.Run("0.0.0.0:" + port)
 }
