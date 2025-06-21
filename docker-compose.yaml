@@ -1,96 +1,87 @@
-version: '3.8'
+networks:
+  production-network:
+    driver: bridge
+  analytics-network:
+    driver: bridge
+  web-api-network:
+    driver: bridge
+
+volumes:
+  kafka-production-data:
+    driver: local
+  kafka-analytics-data:
+    driver: local
 
 services:
-  # Redpanda (Kafka-compatible) - using official configuration
-  redpanda-0:
-    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kontext-redpanda
+  # ===================================================================
+  # CLUSTER 1: "PRODUCTION"
+  # ===================================================================
+  kafka-production-0:
+    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION:-v25.1.5}
+    container_name: ${KAFKA_PRODUCTION_CONTAINER_NAME:-kontext-kafka-production}
     command:
       - redpanda
       - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr internal://redpanda-0:9092,external://localhost:19092
-      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
-      - --advertise-pandaproxy-addr internal://redpanda-0:8082,external://localhost:18082
-      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
-      - --rpc-addr redpanda-0:33145
-      - --advertise-rpc-addr redpanda-0:33145
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:${KAFKA_PRODUCTION_PORT:-19092}
+      - --advertise-kafka-addr internal://kafka-production-0:9092,external://localhost:${KAFKA_PRODUCTION_PORT:-19092}
+      - --rpc-addr kafka-production-0:33145
+      - --advertise-rpc-addr kafka-production-0:33145
       - --mode dev-container
       - --smp 1
-      - --default-log-level=info
     ports:
-      - "18081:18081"  # Schema Registry (external)
-      - "18082:18082"  # REST Proxy (external)
-      - "19092:19092"  # Kafka API (external)
-      - "19644:9644"   # Metrics (external)
+      - "${KAFKA_PRODUCTION_PORT:-19092}:${KAFKA_PRODUCTION_PORT:-19092}"
     volumes:
-      - redpanda-data:/var/lib/redpanda/data
+      - ${KAFKA_PRODUCTION_VOLUME:-kafka-production-data}:/var/lib/kafka/data
     networks:
-      - kontext-network
+      - production-network
 
-  # Redpanda Console (optional but useful for management)
-  redpanda-console:
-    image: docker.redpanda.com/redpandadata/console:v3.1.1
-    container_name: kontext-redpanda-console
-    networks:
-      - kontext-network
-    entrypoint: /bin/sh
-    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
-    environment:
-      CONFIG_FILEPATH: /tmp/config.yml
-      CONSOLE_CONFIG_FILE: |
-        kafka:
-          brokers: ["redpanda-0:9092"]
-        schemaRegistry:
-          enabled: true
-          urls: ["http://redpanda-0:8081"]
-        redpanda:
-          adminApi:
-            enabled: true
-            urls: ["http://redpanda-0:9644"]
+  # ===================================================================
+  # CLUSTER 2: "ANALYTICS"
+  # ===================================================================
+  kafka-analytics-0:
+    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION:-v25.1.5}
+    container_name: ${KAFKA_ANALYTICS_CONTAINER_NAME:-kontext-kafka-analytics}
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:${KAFKA_ANALYTICS_PORT:-29092}
+      - --advertise-kafka-addr internal://kafka-analytics-0:9092,external://localhost:${KAFKA_ANALYTICS_PORT:-29092}
+      - --rpc-addr kafka-analytics-0:33145
+      - --advertise-rpc-addr kafka-analytics-0:33145
+      - --mode dev-container
+      - --smp 1
     ports:
-      - "8081:8080"  # Console UI - changed to avoid conflict
-    depends_on:
-      - redpanda-0
+      - "${KAFKA_ANALYTICS_PORT:-29092}:${KAFKA_ANALYTICS_PORT:-29092}"
+    volumes:
+      - ${KAFKA_ANALYTICS_VOLUME:-kafka-analytics-data}:/var/lib/kafka/data
+    networks:
+      - analytics-network
 
-  # Go API Backend
   api:
     build:
       context: ./services/api
       dockerfile: Dockerfile
-    container_name: kontext-api
+    container_name: ${API_CONTAINER_NAME:-kontext-api}
     ports:
-      - "3001:8080"  # API exposed on 3001, internal port 8080
-    environment:
-      - KAFKA_BROKERS=redpanda-0:9092
-      - REDPANDA_ADMIN_URL=http://redpanda-0:9644
+      - "${API_PORT:-4000}:${API_PORT:-4000}"
     depends_on:
-      - redpanda-0
+      - kafka-production-0
+      - kafka-analytics-0
     volumes:
       - ./services/api:/app
     networks:
-      - kontext-network
+      - production-network
+      - analytics-network
+      - web-api-network
 
-  # React Router Web App
   web:
     build:
       context: ./services/web
       dockerfile: Dockerfile
-    container_name: kontext-web
+    container_name: ${WEB_CONTAINER_NAME:-kontext-web}
     ports:
-      - "3000:3000"
-    environment:
-      - API_URL=http://api:8080
-      - NODE_ENV=production
+      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     depends_on:
       - api
     networks:
-      - kontext-network
-
-volumes:
-  redpanda-data:
-    driver: local
-
-networks:
-  kontext-network:
-    driver: bridge 
+      - web-api-network

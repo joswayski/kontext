@@ -1,0 +1,33 @@
+# Environment files (ignore at all levels)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build outputs
+dist/
+build/
+node_modules/
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp 
