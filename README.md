@@ -25,8 +25,6 @@ Then, the Web app will be available at `http://localhost:3000` and the API will 
 
 
 
-
-
 ## Contributing
 
 Ideas, feedback, and contributions are welcome! Feel free to open an issue to discuss anything and everything.
