@@ -37,6 +37,9 @@ func main() {
 		apiV1.GET("/clusters", func(ctx *gin.Context) {
 			handlers.GetClusters(ctx, cfg, kafkaService)
 		})
+		apiV1.GET("/clusters/:clusterId/topics", func(ctx *gin.Context) {
+			handlers.GetTopics(ctx, cfg, kafkaService)
+		})
 	}
 
 	r.NoRoute(handlers.NotFoundHandler(r))
