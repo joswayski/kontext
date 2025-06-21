@@ -30,7 +30,7 @@ type DatabaseConfig struct {
 
 // Represents a single Kafka cluster to be monitored
 type ClusterConfig struct {
-	Name             string   // "PRODUCTION", set in .env with KAFKA_PRODUCTION_CLUSTER=kafka-production-1:9092,kafka-production-2:9092
+	Id               string   // "PRODUCTION", set in .env with KAFKA_PRODUCTION_CLUSTER=kafka-production-1:9092,kafka-production-2:9092
 	BootstrapServers []string // ["kafka-production-1:9092", "kafka-production-2:9092"]
 }
 
@@ -140,7 +140,7 @@ func getKafkaConfig() KafkaConfig {
 			}
 
 			kafkaConfig.Clusters = append(kafkaConfig.Clusters, ClusterConfig{
-				Name:             clusterName,
+				Id:               clusterName,
 				BootstrapServers: bootstrapServers,
 			})
 		}
@@ -149,7 +149,7 @@ func getKafkaConfig() KafkaConfig {
 	if len(kafkaConfig.Clusters) == 0 {
 		log.Println("No KAFKA_*_CLUSTER variables found, using default localhost:9092")
 		kafkaConfig.Clusters = append(kafkaConfig.Clusters, ClusterConfig{
-			Name:             "DEFAULT",
+			Id:               "DEFAULT",
 			BootstrapServers: []string{"localhost:9092"},
 		})
 	}

@@ -11,9 +11,9 @@ import (
 // ClusterResponse represents the response structure for a Kafka cluster
 type ClusterResponse struct {
 	ID               string `json:"id"`
-	Name             string `json:"name"`
-	BootstrapServers string `json:"bootstrapServers"`
+	BootstrapServers string `json:"bootstrap_servers"`
 	Status           string `json:"status"`
+	Error            string `json:"error,omitempty"`
 }
 
 func GetClusters(ctx *gin.Context, cfg *config.Config, kafkaService *services.KafkaService) {
@@ -26,9 +26,9 @@ func GetClusters(ctx *gin.Context, cfg *config.Config, kafkaService *services.Ka
 	for _, info := range clusterInfos {
 		clusters = append(clusters, ClusterResponse{
 			ID:               info.ID,
-			Name:             info.Name,
 			BootstrapServers: info.BootstrapServers,
 			Status:           info.Status,
+			Error:            info.Error,
 		})
 	}
 

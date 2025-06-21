@@ -20,10 +20,8 @@ type KafkaService struct {
 // ClusterInfo represents detailed information about a Kafka cluster
 type ClusterInfo struct {
 	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	BootstrapServers string    `json:"bootstrapServers"`
+	BootstrapServers string    `json:"bootstrap_servers"`
 	Status           string    `json:"status"`
-	LastChecked      time.Time `json:"lastChecked"`
 	Error            string    `json:"error,omitempty"`
 }
 
@@ -43,7 +41,7 @@ func NewKafkaService(cfg *config.Config) *KafkaService {
 
 // connectToCluster establishes a connection to a single Kafka cluster
 func (ks *KafkaService) connectToCluster(cluster config.ClusterConfig) {
-	clientID := fmt.Sprintf("kontext-%s", cluster.Name)
+	clientID := fmt.Sprintf("kontext-%s", cluster.Id)
 
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(cluster.BootstrapServers...),
@@ -54,15 +52,15 @@ func (ks *KafkaService) connectToCluster(cluster config.ClusterConfig) {
 
 	client, err := kgo.NewClient(opts...)
 	if err != nil {
-		log.Printf("Failed to create Kafka client for cluster %s: %v", cluster.Name, err)
+		log.Printf("Failed to create Kafka client for cluster %s: %v", cluster.Id, err)
 		return
 	}
 
 	ks.mu.Lock()
-	ks.clients[cluster.Name] = client
+	ks.clients[cluster.Id] = client
 	ks.mu.Unlock()
 
-	log.Printf("Successfully connected to Kafka cluster: %s", cluster.Name)
+	log.Printf("Successfully connected to Kafka cluster: %s", cluster.Id)
 }
 
 // GetClusterInfo returns information about all clusters including their connection status
@@ -71,14 +69,12 @@ func (ks *KafkaService) GetClusterInfo(cfg *config.Config) []ClusterInfo {
 
 	for _, cluster := range cfg.Kafka.Clusters {
 		info := ClusterInfo{
-			ID:               strings.ToLower(cluster.Name),
-			Name:             cluster.Name,
-			BootstrapServers: cluster.BootstrapServers[0], // For now, just show the first server
-			LastChecked:      time.Now(),
+			ID:               strings.ToLower(cluster.Id),
+			BootstrapServers: strings.Join(cluster.BootstrapServers, ","),
 		}
 
 		ks.mu.RLock()
-		_, exists := ks.clients[cluster.Name]
+		_, exists := ks.clients[cluster.Id]
 		ks.mu.RUnlock()
 
 		if !exists {
