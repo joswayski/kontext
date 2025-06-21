@@ -1,5 +1,5 @@
 networks:
-  prod-network:
+  production-network:
     driver: bridge
   analytics-network:
     driver: bridge
