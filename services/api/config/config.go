@@ -29,7 +29,7 @@ type DatabaseConfig struct {
 
 // Represents a single Kafka cluster to be monitored
 type ClusterConfig struct {
-	Name             string   // "PRODUCTION", set in .env with KAFKA_CLUSTER_PRODUCTION=kafka-prod-1:9092,kafka-prod-2:9092
+	Name             string   // "PRODUCTION", set in .env with KAFKA_PRODUCTION_CLUSTER=kafka-prod-1:9092,kafka-prod-2:9092
 	BootstrapServers []string // ["kafka-prod-1:9092", "kafka-prod-2:9092"]
 }
 
@@ -38,16 +38,29 @@ type KafkaConfig struct {
 }
 
 func Load() *Config {
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Printf("Warning: .env file not found: %v", err)
+	envFiles := []string{
+		".env",
+		"../.env",
+		"../../.env", // Root directory
 	}
-	log.Println("Loaded .env file")
+
+	var loaded bool
+	for _, envFile := range envFiles {
+		err := godotenv.Load(envFile)
+		if err == nil {
+			log.Printf("Loaded .env file from: %s", envFile)
+			loaded = true
+			break
+		}
+	}
+
+	if !loaded {
+		log.Printf("Warning: No .env file found in any of the expected locations")
+	}
 
 	return &Config{
 		Server: ServerConfig{
-			Port:            getEnv("PORT", "4000"),
+			Port:            getEnv("API_PORT", "4000"),
 			ShutdownTimeout: getEnvAsInt("SHUTDOWN_TIMEOUT", 10),
 		},
 		Database: DatabaseConfig{
@@ -95,7 +108,8 @@ func getCorsConfig() cors.Config {
 	return corsConfig
 }
 
-const KAFKA_PREFIX = "KAFKA_CLUSTER_"
+const KAFKA_PREFIX = "KAFKA_"
+const KAFKA_SUFFIX = "_CLUSTER"
 
 func getKafkaConfig() KafkaConfig {
 	kafkaConfig := KafkaConfig{
@@ -103,7 +117,8 @@ func getKafkaConfig() KafkaConfig {
 	}
 
 	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, KAFKA_PREFIX) {
+		// Check if the environment variable matches the pattern KAFKA_*_CLUSTER
+		if strings.HasPrefix(env, KAFKA_PREFIX) && strings.HasSuffix(env, KAFKA_SUFFIX) {
 			parts := strings.SplitN(env, "=", 2)
 			if len(parts) != 2 {
 				continue
@@ -112,8 +127,9 @@ func getKafkaConfig() KafkaConfig {
 			key := parts[0]
 			value := parts[1]
 
-			// Get the cluster name by trimming the prefix
+			// Extract the cluster name by removing KAFKA_ prefix and _CLUSTER suffix
 			clusterName := strings.TrimPrefix(key, KAFKA_PREFIX)
+			clusterName = strings.TrimSuffix(clusterName, KAFKA_SUFFIX)
 
 			// Split the comma-separated bootstrap servers
 			bootstrapServers := strings.Split(value, ",")
@@ -129,7 +145,7 @@ func getKafkaConfig() KafkaConfig {
 	}
 
 	if len(kafkaConfig.Clusters) == 0 {
-		log.Println("No KAFKA_CLUSTER_* variables found, using default localhost:9092")
+		log.Println("No KAFKA_*_CLUSTER variables found, using default localhost:9092")
 		kafkaConfig.Clusters = append(kafkaConfig.Clusters, ClusterConfig{
 			Name:             "DEFAULT",
 			BootstrapServers: []string{"localhost:9092"},

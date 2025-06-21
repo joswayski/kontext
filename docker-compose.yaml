@@ -17,21 +17,21 @@ services:
   # CLUSTER 1: "PRODUCTION"
   # ===================================================================
   kafka-production-0:
-    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kontext-kafka-production
+    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION}
+    container_name: ${KAFKA_PRODUCTION_CONTAINER_NAME}
     command:
       - redpanda
       - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr internal://kafka-production-0:9092,external://localhost:19092
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:${KAFKA_PRODUCTION_PORT}
+      - --advertise-kafka-addr internal://kafka-production-0:9092,external://localhost:${KAFKA_PRODUCTION_PORT}
       - --rpc-addr kafka-production-0:33145
       - --advertise-rpc-addr kafka-production-0:33145
       - --mode dev-container
       - --smp 1
     ports:
-      - "19092:19092"
+      - "${KAFKA_PRODUCTION_PORT}:${KAFKA_PRODUCTION_PORT}"
     volumes:
-      - kafka-production-data:/var/lib/kafka/data
+      - ${KAFKA_PRODUCTION_VOLUME}:/var/lib/kafka/data
     networks:
       - production-network
 
@@ -39,35 +39,38 @@ services:
   # CLUSTER 2: "ANALYTICS"
   # ===================================================================
   kafka-analytics-0:
-    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kontext-kafka-analytics
+    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION}
+    container_name: ${KAFKA_ANALYTICS_CONTAINER_NAME}
     command:
       - redpanda
       - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:29092  # Note the different external port
-      - --advertise-kafka-addr internal://kafka-analytics-0:9092,external://localhost:29092 # Note the different external port
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:${KAFKA_ANALYTICS_PORT}
+      - --advertise-kafka-addr internal://kafka-analytics-0:9092,external://localhost:${KAFKA_ANALYTICS_PORT}
       - --rpc-addr kafka-analytics-0:33145
       - --advertise-rpc-addr kafka-analytics-0:33145
       - --mode dev-container
       - --smp 1
     ports:
-      - "29092:29092"
+      - "${KAFKA_ANALYTICS_PORT}:${KAFKA_ANALYTICS_PORT}"
     volumes:
-      - kafka-analytics-data:/var/lib/kafka/data
+      - ${KAFKA_ANALYTICS_VOLUME}:/var/lib/kafka/data
     networks:
       - analytics-network
-
 
   api:
     build:
       context: ./services/api
       dockerfile: Dockerfile
-    container_name: kontext-api
+    container_name: ${API_CONTAINER_NAME}
     ports:
-      - "4000:4000"
+      - "${API_PORT}:${API_PORT}"
     environment:
-      - KAFKA_CLUSTER_PRODUCTION=kafka-production-0:9092
-      - KAFKA_CLUSTER_ANALYTICS=kafka-analytics-0:9092
+      - KAFKA_PRODUCTION_CLUSTER=${KAFKA_PRODUCTION_CLUSTER}
+      - KAFKA_ANALYTICS_CLUSTER=${KAFKA_ANALYTICS_CLUSTER}
+      - PORT=${PORT}
+      - SHUTDOWN_TIMEOUT=${SHUTDOWN_TIMEOUT}
+      - DATABASE_URL=${DATABASE_URL}
+      - FRONTEND_URLS=${FRONTEND_URLS}
     depends_on:
       - kafka-production-0
       - kafka-analytics-0
@@ -82,12 +85,12 @@ services:
     build:
       context: ./services/web
       dockerfile: Dockerfile
-    container_name: kontext-web
+    container_name: ${WEB_CONTAINER_NAME}
     ports:
-      - "3000:3000"
+      - "${WEB_PORT}:${WEB_PORT}"
     environment:
-      - API_URL=http://api:4000
-      - NODE_ENV=production
+      - API_URL=${API_URL}
+      - NODE_ENV=${NODE_ENV}
     depends_on:
       - api
     networks:
