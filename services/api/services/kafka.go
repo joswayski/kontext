@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -8,7 +9,9 @@ import (
 	"time"
 
 	"github.com/joswayski/kontext/config"
+	"github.com/joswayski/kontext/types"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/kmsg"
 )
 
 // KafkaService manages connections to multiple Kafka clusters
@@ -19,10 +22,10 @@ type KafkaService struct {
 
 // ClusterInfo represents detailed information about a Kafka cluster
 type ClusterInfo struct {
-	ID               string    `json:"id"`
-	BootstrapServers string    `json:"bootstrap_servers"`
-	Status           string    `json:"status"`
-	Error            string    `json:"error,omitempty"`
+	ID               string `json:"id"`
+	BootstrapServers string `json:"bootstrap_servers"`
+	Status           string `json:"status"`
+	Error            string `json:"error,omitempty"`
 }
 
 // NewKafkaService creates a new Kafka service instance
@@ -107,4 +110,79 @@ func (ks *KafkaService) GetClient(clusterName string) (*kgo.Client, bool) {
 
 	client, exists := ks.clients[clusterName]
 	return client, exists
+}
+
+// GetTopics retrieves all topics from a specific cluster
+func (ks *KafkaService) GetTopics(clusterId string) ([]types.TopicResponse, error) {
+	client, exists := ks.GetClient(clusterId)
+	if !exists {
+		return nil, fmt.Errorf("cluster %s not found or not connected", clusterId)
+	}
+
+	// Create metadata request to get topic information
+	req := kmsg.NewMetadataRequest()
+	req.Topics = nil // nil means all topics
+
+	// Send the request
+	resp, err := req.RequestWith(context.Background(), client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get metadata: %v", err)
+	}
+
+	var topics []types.TopicResponse
+
+	for _, topic := range resp.Topics {
+		// Skip internal topics unless specifically requested
+		if topic.IsInternal && !strings.HasPrefix(*topic.Topic, "__") {
+			continue
+		}
+
+		// Get partition count and replication factor
+		partitions := int32(len(topic.Partitions))
+		var replicationFactor int16
+		if len(topic.Partitions) > 0 {
+			replicationFactor = int16(len(topic.Partitions[0].Replicas))
+		}
+
+		// Get topic configs
+		configs, err := ks.getTopicConfigs(client, *topic.Topic)
+		if err != nil {
+			log.Printf("Warning: failed to get configs for topic %s: %v", *topic.Topic, err)
+		}
+
+		topics = append(topics, types.TopicResponse{
+			Name:              *topic.Topic,
+			Partitions:        partitions,
+			ReplicationFactor: replicationFactor,
+			Configs:           configs,
+			IsInternal:        topic.IsInternal,
+		})
+	}
+
+	return topics, nil
+}
+
+// getTopicConfigs retrieves configuration for a specific topic
+func (ks *KafkaService) getTopicConfigs(client *kgo.Client, topicName string) ([]string, error) {
+	req := kmsg.NewDescribeConfigsRequest()
+	req.Resources = []kmsg.DescribeConfigsRequestResource{
+		{
+			ResourceType: kmsg.ConfigResourceTypeTopic,
+			ResourceName: topicName,
+		},
+	}
+
+	resp, err := req.RequestWith(context.Background(), client)
+	if err != nil {
+		return nil, err
+	}
+
+	var configs []string
+	if len(resp.Resources) > 0 {
+		for _, config := range resp.Resources[0].Configs {
+			configs = append(configs, fmt.Sprintf("%s=%s", config.Name, config.Value))
+		}
+	}
+
+	return configs, nil
 }
