@@ -7,7 +7,7 @@ networks:
     driver: bridge
 
 volumes:
-  kafka-prod-data:
+  kafka-production-data:
     driver: local
   kafka-analytics-data:
     driver: local
