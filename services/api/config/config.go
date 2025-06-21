@@ -27,11 +27,8 @@ type DatabaseConfig struct {
 	Url string
 }
 
-// KafkaConfig holds Kafka-related configuration
 type KafkaConfig struct {
 	Brokers       []string
-	AdminURL      string
-	SchemaURL     string
 	ConsumerGroup string
 }
 
@@ -53,8 +50,6 @@ func Load() *Config {
 		},
 		Kafka: KafkaConfig{
 			Brokers:       getEnvAsSlice("KAFKA_BROKERS", []string{"localhost:9092"}),
-			AdminURL:      getEnv("REDPANDA_ADMIN_URL", "http://localhost:9644"),
-			SchemaURL:     getEnv("SCHEMA_REGISTRY_URL", "http://localhost:8081"),
 			ConsumerGroup: getEnv("KAFKA_CONSUMER_GROUP", "kontext-consumer"),
 		},
 		Cors: getCorsConfig(),
@@ -93,7 +88,7 @@ func getEnvAsInt(key string, defaultValue int) int {
 
 func getCorsConfig() cors.Config {
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowOrigins = getEnvAsSlice("WEB_URLS", []string{"http://localhost:3000"})
 	corsConfig.AllowCredentials = true
 	return corsConfig
 }

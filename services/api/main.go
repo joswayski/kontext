@@ -21,10 +21,15 @@ func main() {
 	r := gin.Default()
 	r.Use(cors.New(cfg.Cors))
 
-	r.Group("/api/v1")
+	// Inentional
+	r.GET("/", handlers.RootHandler)
+	r.GET("/health", handlers.HealthHandler)
+
+	apiV1 := r.Group("/api/v1")
 	{
-		r.GET("/", handlers.RootHandler)
-		r.GET("/health", handlers.HealthHandler)
+		apiV1.GET("", handlers.RootHandler)
+		apiV1.GET("/health", handlers.HealthHandler)
+		apiV1.GET("/clusters", handlers.GetClusters)
 	}
 
 	r.NoRoute(handlers.NotFoundHandler(r))
