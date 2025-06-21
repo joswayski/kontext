@@ -13,8 +13,16 @@ I am looking to build a tool that will help me:
 ## Running
 
 ```bash
+cp .env.example .env
+```
+
+```bash
 docker compose up -d
 ```
+
+Then, the API will be available at `http://localhost:4000` and the web app will be available at `http://localhost:3000`.
+
+
 
 
 
