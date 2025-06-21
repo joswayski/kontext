@@ -1,6 +1,6 @@
 ## API
 
-Go API to extract data from Kafka clusters and provide cluster management functionality.
+Go API to extract data from Kafka clusters
 
 ### Endpoints
 
