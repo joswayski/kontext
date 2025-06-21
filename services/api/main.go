@@ -21,7 +21,7 @@ func main() {
 	r := gin.Default()
 	r.Use(cors.New(cfg.Cors))
 
-	// Inentional
+	// Intentional
 	r.GET("/", handlers.RootHandler)
 	r.GET("/health", handlers.HealthHandler)
 
