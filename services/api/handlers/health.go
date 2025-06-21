@@ -8,6 +8,6 @@ import (
 
 func HealthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"message": "OK",
+		"message": "Saul Goodman!",
 	})
 }
