@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-contrib/cors"
 	"github.com/joho/godotenv"
 )
 
@@ -14,6 +15,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Kafka    KafkaConfig
+	Cors     cors.Config
 }
 
 type ServerConfig struct {
@@ -55,6 +57,7 @@ func Load() *Config {
 			SchemaURL:     getEnv("SCHEMA_REGISTRY_URL", "http://localhost:8081"),
 			ConsumerGroup: getEnv("KAFKA_CONSUMER_GROUP", "kontext-consumer"),
 		},
+		Cors: getCorsConfig(),
 	}
 }
 
@@ -86,4 +89,11 @@ func getEnvAsInt(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+func getCorsConfig() cors.Config {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowCredentials = true
+	return corsConfig
 }

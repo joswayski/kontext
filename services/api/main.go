@@ -19,10 +19,14 @@ func main() {
 	cfg := config.Load()
 
 	r := gin.Default()
-	r.Use(cors.Default())
+	r.Use(cors.New(cfg.Cors))
 
-	r.GET("/", handlers.RootHandler)
-	r.GET("/health", handlers.HealthHandler)
+	r.Group("/api/v1")
+	{
+		r.GET("/", handlers.RootHandler)
+		r.GET("/health", handlers.HealthHandler)
+	}
+
 	r.NoRoute(handlers.NotFoundHandler(r))
 	r.NoMethod(handlers.NotFoundHandler(r))
 
