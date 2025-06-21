@@ -13,11 +13,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joswayski/kontext/config"
 	"github.com/joswayski/kontext/handlers"
+	"github.com/joswayski/kontext/services"
 )
 
 func main() {
 	cfg := config.Load()
 	gin.SetMode(cfg.Server.GinMode)
+
+	kafkaService := services.NewKafkaService(cfg)
+	defer kafkaService.Close()
 
 	r := gin.Default()
 	r.Use(cors.New(cfg.Cors))
@@ -30,7 +34,9 @@ func main() {
 	{
 		apiV1.GET("", handlers.RootHandler)
 		apiV1.GET("/health", handlers.HealthHandler)
-		apiV1.GET("/clusters", handlers.GetClusters)
+		apiV1.GET("/clusters", func(ctx *gin.Context) {
+			handlers.GetClusters(ctx, cfg, kafkaService)
+		})
 	}
 
 	r.NoRoute(handlers.NotFoundHandler(r))

@@ -30,8 +30,8 @@ type DatabaseConfig struct {
 
 // Represents a single Kafka cluster to be monitored
 type ClusterConfig struct {
-	Name             string   // "PRODUCTION", set in .env with KAFKA_PRODUCTION_CLUSTER=kafka-prod-1:9092,kafka-prod-2:9092
-	BootstrapServers []string // ["kafka-prod-1:9092", "kafka-prod-2:9092"]
+	Name             string   // "PRODUCTION", set in .env with KAFKA_PRODUCTION_CLUSTER=kafka-production-1:9092,kafka-production-2:9092
+	BootstrapServers []string // ["kafka-production-1:9092", "kafka-production-2:9092"]
 }
 
 type KafkaConfig struct {
