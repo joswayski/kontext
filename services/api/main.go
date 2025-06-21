@@ -17,6 +17,7 @@ import (
 
 func main() {
 	cfg := config.Load()
+	gin.SetMode(cfg.Server.GinMode)
 
 	r := gin.Default()
 	r.Use(cors.New(cfg.Cors))

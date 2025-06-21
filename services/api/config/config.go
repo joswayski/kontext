@@ -21,6 +21,7 @@ type Config struct {
 type ServerConfig struct {
 	Port            string
 	ShutdownTimeout int
+	GinMode         string
 }
 
 type DatabaseConfig struct {
@@ -62,6 +63,7 @@ func Load() *Config {
 		Server: ServerConfig{
 			Port:            getEnv("API_PORT", "4000"),
 			ShutdownTimeout: getEnvAsInt("SHUTDOWN_TIMEOUT", 10),
+			GinMode:         getEnv("GIN_MODE", "debug"),
 		},
 		Database: DatabaseConfig{
 			Url: getEnv("DATABASE_URL", ""),
@@ -117,16 +119,16 @@ func getKafkaConfig() KafkaConfig {
 	}
 
 	for _, env := range os.Environ() {
-		// Check if the environment variable matches the pattern KAFKA_*_CLUSTER
-		if strings.HasPrefix(env, KAFKA_PREFIX) && strings.HasSuffix(env, KAFKA_SUFFIX) {
-			parts := strings.SplitN(env, "=", 2)
-			if len(parts) != 2 {
-				continue
-			}
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
 
-			key := parts[0]
-			value := parts[1]
+		key := parts[0]
+		value := parts[1]
 
+		// Check if the environment variable key matches the pattern KAFKA_*_CLUSTER
+		if strings.HasPrefix(key, KAFKA_PREFIX) && strings.HasSuffix(key, KAFKA_SUFFIX) {
 			// Extract the cluster name by removing KAFKA_ prefix and _CLUSTER suffix
 			clusterName := strings.TrimPrefix(key, KAFKA_PREFIX)
 			clusterName = strings.TrimSuffix(clusterName, KAFKA_SUFFIX)

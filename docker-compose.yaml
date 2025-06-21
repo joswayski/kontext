@@ -17,21 +17,21 @@ services:
   # CLUSTER 1: "PRODUCTION"
   # ===================================================================
   kafka-production-0:
-    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION}
-    container_name: ${KAFKA_PRODUCTION_CONTAINER_NAME}
+    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION:-v25.1.5}
+    container_name: ${KAFKA_PRODUCTION_CONTAINER_NAME:-kontext-kafka-production}
     command:
       - redpanda
       - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:${KAFKA_PRODUCTION_PORT}
-      - --advertise-kafka-addr internal://kafka-production-0:9092,external://localhost:${KAFKA_PRODUCTION_PORT}
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:${KAFKA_PRODUCTION_PORT:-19092}
+      - --advertise-kafka-addr internal://kafka-production-0:9092,external://localhost:${KAFKA_PRODUCTION_PORT:-19092}
       - --rpc-addr kafka-production-0:33145
       - --advertise-rpc-addr kafka-production-0:33145
       - --mode dev-container
       - --smp 1
     ports:
-      - "${KAFKA_PRODUCTION_PORT}:${KAFKA_PRODUCTION_PORT}"
+      - "${KAFKA_PRODUCTION_PORT:-19092}:${KAFKA_PRODUCTION_PORT:-19092}"
     volumes:
-      - ${KAFKA_PRODUCTION_VOLUME}:/var/lib/kafka/data
+      - ${KAFKA_PRODUCTION_VOLUME:-kafka-production-data}:/var/lib/kafka/data
     networks:
       - production-network
 
@@ -39,21 +39,21 @@ services:
   # CLUSTER 2: "ANALYTICS"
   # ===================================================================
   kafka-analytics-0:
-    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION}
-    container_name: ${KAFKA_ANALYTICS_CONTAINER_NAME}
+    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION:-v25.1.5}
+    container_name: ${KAFKA_ANALYTICS_CONTAINER_NAME:-kontext-kafka-analytics}
     command:
       - redpanda
       - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:${KAFKA_ANALYTICS_PORT}
-      - --advertise-kafka-addr internal://kafka-analytics-0:9092,external://localhost:${KAFKA_ANALYTICS_PORT}
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:${KAFKA_ANALYTICS_PORT:-29092}
+      - --advertise-kafka-addr internal://kafka-analytics-0:9092,external://localhost:${KAFKA_ANALYTICS_PORT:-29092}
       - --rpc-addr kafka-analytics-0:33145
       - --advertise-rpc-addr kafka-analytics-0:33145
       - --mode dev-container
       - --smp 1
     ports:
-      - "${KAFKA_ANALYTICS_PORT}:${KAFKA_ANALYTICS_PORT}"
+      - "${KAFKA_ANALYTICS_PORT:-29092}:${KAFKA_ANALYTICS_PORT:-29092}"
     volumes:
-      - ${KAFKA_ANALYTICS_VOLUME}:/var/lib/kafka/data
+      - ${KAFKA_ANALYTICS_VOLUME:-kafka-analytics-data}:/var/lib/kafka/data
     networks:
       - analytics-network
 
@@ -61,16 +61,9 @@ services:
     build:
       context: ./services/api
       dockerfile: Dockerfile
-    container_name: ${API_CONTAINER_NAME}
+    container_name: ${API_CONTAINER_NAME:-kontext-api}
     ports:
-      - "${API_PORT}:${API_PORT}"
-    environment:
-      - KAFKA_PRODUCTION_CLUSTER=${KAFKA_PRODUCTION_CLUSTER}
-      - KAFKA_ANALYTICS_CLUSTER=${KAFKA_ANALYTICS_CLUSTER}
-      - PORT=${PORT}
-      - SHUTDOWN_TIMEOUT=${SHUTDOWN_TIMEOUT}
-      - DATABASE_URL=${DATABASE_URL}
-      - FRONTEND_URLS=${FRONTEND_URLS}
+      - "${API_PORT:-4000}:${API_PORT:-4000}"
     depends_on:
       - kafka-production-0
       - kafka-analytics-0
@@ -85,12 +78,9 @@ services:
     build:
       context: ./services/web
       dockerfile: Dockerfile
-    container_name: ${WEB_CONTAINER_NAME}
+    container_name: ${WEB_CONTAINER_NAME:-kontext-web}
     ports:
-      - "${WEB_PORT}:${WEB_PORT}"
-    environment:
-      - API_URL=${API_URL}
-      - NODE_ENV=${NODE_ENV}
+      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     depends_on:
       - api
     networks:
