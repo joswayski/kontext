@@ -20,7 +20,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Then, the API will be available at `http://localhost:4000` and the web app will be available at `http://localhost:3000`.
+Then, the Web app will be available at `http://localhost:3000` and the API will be available at `http://localhost:4000`.
 
 
 
