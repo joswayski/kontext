@@ -7,12 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// NotFoundHandler creates a 404 handler that shows available routes
 func NotFoundHandler(router *gin.Engine) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var routes []string
 
-		// Get all registered routes from the router
 		for _, route := range router.Routes() {
 			routes = append(routes, route.Method+" "+route.Path)
 		}

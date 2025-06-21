@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -16,7 +17,8 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port string
+	Port            string
+	ShutdownTimeout int
 }
 
 type DatabaseConfig struct {
@@ -41,7 +43,8 @@ func Load() *Config {
 
 	return &Config{
 		Server: ServerConfig{
-			Port: getEnv("PORT", "4000"),
+			Port:            getEnv("PORT", "4000"),
+			ShutdownTimeout: getEnvAsInt("SHUTDOWN_TIMEOUT", 10),
 		},
 		Database: DatabaseConfig{
 			Url: getEnv("DATABASE_URL", ""),
@@ -71,6 +74,16 @@ func getEnvAsSlice(key string, defaultValue []string) []string {
 			values[i] = strings.TrimSpace(v)
 		}
 		return values
+	}
+	return defaultValue
+}
+
+func getEnvAsInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		intValue, err := strconv.Atoi(value)
+		if err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }
