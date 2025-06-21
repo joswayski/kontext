@@ -113,10 +113,10 @@ func (ks *KafkaService) GetClient(clusterName string) (*kgo.Client, bool) {
 }
 
 // GetTopics retrieves all topics from a specific cluster
-func (ks *KafkaService) GetTopics(clusterId string) ([]types.TopicResponse, error) {
-	client, exists := ks.GetClient(clusterId)
+func (ks *KafkaService) GetTopics(id string) ([]types.TopicResponse, error) {
+	client, exists := ks.GetClient(id)
 	if !exists {
-		return nil, fmt.Errorf("cluster %s not found or not connected", clusterId)
+		return nil, fmt.Errorf("cluster %s not found or not connected", id)
 	}
 
 	// Create metadata request to get topic information
@@ -129,7 +129,7 @@ func (ks *KafkaService) GetTopics(clusterId string) ([]types.TopicResponse, erro
 		return nil, fmt.Errorf("failed to get metadata: %v", err)
 	}
 
-	var topics []types.TopicResponse
+	topics := make([]types.TopicResponse, 0)
 
 	for _, topic := range resp.Topics {
 		// Skip internal topics unless specifically requested
