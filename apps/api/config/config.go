@@ -24,7 +24,7 @@ func GetConfig() *Config {
 }
 
 const envPort = "API_PORT"
-const defaultPort = "8080"
+const defaultPort = "4000"
 
 func getPort() string {
 	port := os.Getenv(envPort)

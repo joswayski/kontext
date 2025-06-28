@@ -8,4 +8,5 @@ export default defineConfig({
   server: {
     port: process.env.WEB_PORT ? parseInt(process.env.WEB_PORT) : 3000,
   },
+  envDir: "../../.env",
 });

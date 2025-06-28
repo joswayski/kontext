@@ -5,7 +5,7 @@ services:
     env_file:
       - .env
     ports:
-      - "${API_PORT:-8080}:${API_PORT:-8080}"
+      - "${API_PORT:-4000}:${API_PORT:-4000}"
 
   web:
     build:
