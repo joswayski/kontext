@@ -1,3 +1,3 @@
 # API
 
-Go API with Chi
+Go API with Gin
