@@ -31,7 +31,6 @@ export async function loader() {
 export default function Home() {
   const { message } = useLoaderData<typeof loader>()
   return <div>
-    <Welcome />
-    <p>API: {message}</p>
+    <Welcome apiStatus={message}/>
   </div>;
 }
