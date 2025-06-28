@@ -14,17 +14,15 @@ docker compose up -d --build
 ```
 
 This will start the following services:
-- Web app on port 3000
-- API on port 4000
+- Web app at http://localhost:3000
+- API at http://localhost:4000
 - Kafka Production Cluster 
-    - Broker URL: 19092
-    - Schema Registry URL: 18081
-    - Admin API URL: 19644
-    - Console URL: 8080
+    - Broker URL at http://kafka-production-0:9092 (internal Docker)
+    - Admin API URL at http://localhost:19644 
+    - Console URL at http://localhost:8080
 - Kafka Analytics Cluster 
-    - Broker URL: 29092
-    - Schema Registry URL: 28081
-    - Admin API URL: 29644
-    - Console URL: 8081
+    - Broker URL at http://kafka-analytics-0:9092 (internal Docker)
+    - Admin API URL at http://localhost:29644
+    - Console URL at http://localhost:8081
 
-See [docker-compose.yaml](./docker-compose.yaml) for more details. We are also using [Redpanda]("https://redpanda.com/") due to the smaller resource footprint.
+The Admin API and console will be removed eventually, as we're trying to recreate this somewhat. We are also using [Redpanda]("https://redpanda.com/") due to the smaller resource footprint. See [docker-compose.yaml](./docker-compose.yaml) for more details. 
