@@ -1,7 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"github.com/joswayski/kontext/apps/api/config"
+	"github.com/joswayski/kontext/apps/api/router"
+)
 
 func main() {
-	fmt.Println("Hello, World!")
+	cfg := config.GetConfig()
+	r := router.GetRouter()
+
+	r.Run(":" + cfg.Port)
 }
