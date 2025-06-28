@@ -10,5 +10,7 @@ This project is in the early stages of development, contributions are welcome!
 ```bash
 cp .env.example .env
 
-docker compose up -d
+docker compose up -d --build
 ```
+
+This will start the API on port 4000 and the web app on port 3000.
