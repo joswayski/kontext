@@ -23,13 +23,14 @@ func GetConfig() *Config {
 	}
 }
 
+const envPort = "API_PORT"
 const defaultPort = "8080"
 
 func getPort() string {
-	port := os.Getenv("PORT")
+	port := os.Getenv(envPort)
 
 	if port == "" {
-		slog.Warn(fmt.Sprintf("No PORT environment variable found, using default port %s", defaultPort))
+		slog.Warn(fmt.Sprintf("No %s environment variable found, using default port %s", envPort, defaultPort))
 		return defaultPort
 	}
 

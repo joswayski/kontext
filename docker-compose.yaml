@@ -1,0 +1,17 @@
+services:
+  api:
+    build:
+      context: ./apps/api
+    env_file:
+      - .env
+    ports:
+      - "${API_PORT:-8080}:${API_PORT:-8080}"
+
+  web:
+    build:
+      context: ./apps/web
+    env_file:
+      - .env
+    ports:
+      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
+
