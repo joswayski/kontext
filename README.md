@@ -23,5 +23,5 @@ This will start the following services:
 
 ### Notes
 - If running outside of docker, make sure to update the URLs in your `.env` to point to `localhost:PORT` instead. See [docker-compose.yaml](docker-compose.yaml) for more info.
-- The Admin API and console will be removed eventually, as we're trying to recreate them *somewhat*.
+- The Admin API and console will be removed eventually as we're trying to recreate them *somewhat*.
 - We are also using [Redpanda]("https://redpanda.com/") due to the smaller resource footprint. 
