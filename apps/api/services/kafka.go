@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"log/slog"
 
 	cfg "github.com/joswayski/kontext/apps/api/config"
@@ -26,8 +27,9 @@ func GetAllKafkaClients(cfg cfg.KontextConfig) map[string]*kgo.Client {
 	for clusterId, clusterConfig := range cfg.KafkaClusters {
 		client, err := newKafkaClient(clusterConfig)
 		if err != nil {
-			slog.Warn(fmt.Sprintf("Unable to create Kafka client for %s cluster", clusterId))
+			log.Fatalf("Unable to create Kafka client for %s cluster: %s", clusterId, err)
 		}
+		slog.Info(fmt.Sprintf("Created client for %s cluster", clusterId))
 		allClients[clusterId] = client
 	}
 
