@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/joswayski/kontext/apps/api/config"
-	"github.com/joswayski/kontext/apps/api/router"
+	"github.com/joswayski/kontext/apps/api/routes"
 )
 
 func main() {
 	cfg := config.GetConfig()
-	r := router.GetRouter()
+	r := routes.GetRouter()
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
