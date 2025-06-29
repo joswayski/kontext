@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"fmt"
-	"log/slog"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 type ClusterStatus struct {
@@ -15,23 +15,33 @@ type ClusterStatus struct {
 
 func (h *Handler) GetClustersHandler(c *gin.Context) {
 	results := make(map[string]ClusterStatus)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
-	slog.Info(fmt.Sprintf("Checking %d kafka clients", len(h.KafkaClients)))
-	for k, v := range h.KafkaClients {
-		slog.Info(fmt.Sprintf("Checking %s", k))
-		ping := v.Ping(c.Request.Context())
-		healthy := ping == nil
-		status := "connected"
-		message := "Saul Goodman"
-		if !healthy {
-			status = "error"
-			message = ping.Error()
-		}
-		results[k] = ClusterStatus{
-			Status:  status,
-			Message: message,
-		}
+	for clusterName, kafkaClient := range h.KafkaClients {
+		wg.Add(1)
+		go func(name string, kafkaClient *kgo.Client) {
+			defer wg.Done()
+			ping := kafkaClient.Ping(c.Request.Context())
+			healthy := ping == nil
+			status := "connected"
+			message := "Saul Goodman"
+			if !healthy {
+				status = "error"
+				message = ping.Error()
+			}
+
+			mu.Lock()
+			results[clusterName] = ClusterStatus{
+				Status:  status,
+				Message: message,
+			}
+			mu.Unlock()
+
+		}(clusterName, kafkaClient)
 
 	}
+
+	wg.Wait()
 	c.JSON(http.StatusOK, results)
 }
