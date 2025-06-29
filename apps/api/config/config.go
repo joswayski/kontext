@@ -10,7 +10,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Config struct {
+type KontextConfig struct {
 	Port          string
 	KafkaClusters map[string]KafkaClusterConfig
 }
@@ -21,14 +21,14 @@ type KafkaClusterConfig struct {
 	Id string
 }
 
-func GetConfig() *Config {
+func GetConfig() *KontextConfig {
 
 	err := godotenv.Load("../../.env")
 	if err != nil {
 		slog.Warn(fmt.Sprintf("Failed to load .env file from root: %v", err))
 	}
 
-	return &Config{
+	return &KontextConfig{
 		Port:          getPort(),
 		KafkaClusters: getKafkaClusters(),
 	}

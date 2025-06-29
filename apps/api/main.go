@@ -11,11 +11,14 @@ import (
 
 	"github.com/joswayski/kontext/apps/api/config"
 	"github.com/joswayski/kontext/apps/api/routes"
+	"github.com/joswayski/kontext/apps/api/services"
 )
 
 func main() {
 	cfg := config.GetConfig()
-	r := routes.GetRouter()
+	kafkaClients := services.GetAllKafkaClients(*cfg)
+
+	r := routes.GetRoutes(kafkaClients)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

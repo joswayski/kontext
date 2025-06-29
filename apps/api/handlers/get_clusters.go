@@ -6,6 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetClustersHandler(c *gin.Context) {
+func (h *Handler) GetClustersHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Hello, World! - TODO"})
 }
