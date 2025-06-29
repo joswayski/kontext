@@ -8,12 +8,14 @@ import (
 	"sync"
 
 	cfg "github.com/joswayski/kontext/apps/api/config"
+	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 type ClusterStatus struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Status   string        `json:"status"`
+	Message  string        `json:"message"`
+	Metadata kadm.Metadata `json:"metadata"`
 }
 
 func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
@@ -28,46 +30,90 @@ func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
 	return cl, nil
 }
 
-func GetAllKafkaClients(cfg cfg.KontextConfig) map[string]*kgo.Client {
-	allClients := make(map[string]*kgo.Client)
+func newAdminKafkaClient(kgoClient *kgo.Client) *kadm.Client {
+
+	acl := kadm.NewClient(
+		kgoClient,
+	)
+
+	return acl
+
+}
+
+type KafkaClients struct {
+	client      *kgo.Client
+	adminClient *kadm.Client
+}
+
+func GetAllKafkaClients(cfg cfg.KontextConfig) map[string]KafkaClients {
+	allClients := make(map[string]KafkaClients)
 
 	for clusterId, clusterConfig := range cfg.KafkaClusters {
-		client, err := newKafkaClient(clusterConfig)
+		normalClient, err := newKafkaClient(clusterConfig)
 		if err != nil {
 			log.Fatalf("Unable to create Kafka client for %s cluster: %s", clusterId, err)
 		}
 		slog.Info(fmt.Sprintf("Created client for %s cluster", clusterId))
-		allClients[clusterId] = client
+
+		adminClient := newAdminKafkaClient(normalClient)
+		slog.Info(fmt.Sprintf("Created admin client for %s cluster", clusterId))
+
+		clConfig := KafkaClients{
+			client:      normalClient,
+			adminClient: adminClient,
+		}
+		allClients[clusterId] = clConfig
 	}
 
 	return allClients
 }
 
-func GetClusterStatuses(ctx context.Context, clients map[string]*kgo.Client) map[string]ClusterStatus {
+func GetClusterStatuses(ctx context.Context, clients map[string]KafkaClients) map[string]ClusterStatus {
 	results := make(map[string]ClusterStatus)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
-	for clusterName, kafkaClient := range clients {
+	for clusterName, kClients := range clients {
 		wg.Add(1)
-		go func(name string, client *kgo.Client) {
+		go func(name string, client KafkaClients) {
 			defer wg.Done()
-			ping := client.Ping(ctx)
+			ping := kClients.client.Ping(ctx)
 			healthy := ping == nil
 			status := "connected"
 			message := "Saul Goodman"
 			if !healthy {
+				mu.Lock()
+				results[name] = ClusterStatus{
+					Status:  "error",
+					Message: fmt.Sprintf("Unable to connect to cluster %s - error: %s", name, ping.Error()),
+				}
+				mu.Unlock()
+				return
+			}
+
+			meta, err := kClients.adminClient.Metadata(ctx)
+
+			if err != nil {
 				status = "error"
-				message = ping.Error()
+				message = fmt.Sprintf("Connected to cluster but unable to retrieve metadata: %s", err.Error())
+
+				mu.Lock()
+				results[name] = ClusterStatus{
+					Status:  status,
+					Message: message,
+				}
+				mu.Unlock()
+				return
 			}
 
 			mu.Lock()
 			results[name] = ClusterStatus{
-				Status:  status,
-				Message: message,
+				Status:   status,
+				Message:  message,
+				Metadata: meta,
 			}
 			mu.Unlock()
-		}(clusterName, kafkaClient)
+		}(clusterName, kClients)
 	}
 
 	wg.Wait()
