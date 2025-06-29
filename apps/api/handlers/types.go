@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	services "github.com/joswayski/kontext/apps/api/services/kafka"
+	services "github.com/joswayski/kontext/apps/api/clients/kafka"
 	"github.com/joswayski/kontext/apps/api/utils"
 )
 
