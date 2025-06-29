@@ -13,6 +13,7 @@ import (
 )
 
 type ClusterStatus struct {
+	Id       string        `json:"id"`
 	Status   string        `json:"status"`
 	Message  string        `json:"message"`
 	Metadata kadm.Metadata `json:"metadata"`
@@ -31,13 +32,10 @@ func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
 }
 
 func newAdminKafkaClient(kgoClient *kgo.Client) *kadm.Client {
-
 	acl := kadm.NewClient(
 		kgoClient,
 	)
-
 	return acl
-
 }
 
 type KafkaClients struct {
@@ -68,9 +66,14 @@ func GetAllKafkaClients(cfg cfg.KontextConfig) map[string]KafkaClients {
 	return allClients
 }
 
-func GetClusterStatuses(ctx context.Context, clients map[string]KafkaClients) map[string]ClusterStatus {
-	results := make(map[string]ClusterStatus)
-	var mu sync.Mutex
+type GetAllClustersResponse struct {
+	Clusters []ClusterStatus `json:"clusters"`
+}
+
+func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAllClustersResponse {
+	results := GetAllClustersResponse{
+		Clusters: make([]ClusterStatus, 0),
+	}
 	var wg sync.WaitGroup
 
 	for clusterName, kClients := range clients {
@@ -82,12 +85,11 @@ func GetClusterStatuses(ctx context.Context, clients map[string]KafkaClients) ma
 			status := "connected"
 			message := "Saul Goodman"
 			if !healthy {
-				mu.Lock()
-				results[name] = ClusterStatus{
+				results.Clusters = append(results.Clusters, ClusterStatus{
+					Id:      clusterName,
 					Status:  "error",
 					Message: fmt.Sprintf("Unable to connect to cluster %s - error: %s", name, ping.Error()),
-				}
-				mu.Unlock()
+				})
 				return
 			}
 
@@ -97,25 +99,27 @@ func GetClusterStatuses(ctx context.Context, clients map[string]KafkaClients) ma
 				status = "error"
 				message = fmt.Sprintf("Connected to cluster but unable to retrieve metadata: %s", err.Error())
 
-				mu.Lock()
-				results[name] = ClusterStatus{
+				results.Clusters = append(results.Clusters, ClusterStatus{
+					Id:      clusterName,
 					Status:  status,
 					Message: message,
-				}
-				mu.Unlock()
+				})
 				return
 			}
 
-			mu.Lock()
-			results[name] = ClusterStatus{
+			results.Clusters = append(results.Clusters, ClusterStatus{
+				Id:       clusterName,
 				Status:   status,
 				Message:  message,
 				Metadata: meta,
-			}
-			mu.Unlock()
+			})
 		}(clusterName, kClients)
 	}
 
 	wg.Wait()
 	return results
+}
+
+func formatMetadata(meta kadm.Metadata) {
+
 }
