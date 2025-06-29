@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/joswayski/kontext/apps/api/handlers"
+	"github.com/joswayski/kontext/apps/api/utils"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
@@ -16,9 +17,12 @@ func GetRoutes(kafkaClients map[string]*kgo.Client) *gin.Engine {
 		KafkaClients: kafkaClients,
 	}
 
-	r.GET("", handlers.RootHandler)
-	r.GET("/health", handlers.RootHandler)
+	r.GET("", h.GetRootHandler)
 	r.GET("/api/v1/clusters", h.GetClustersHandler)
+
+	// Get all routes once after they're registered
+	allRoutes := utils.GetAllRoutes(r)
+	h.Routes = allRoutes
 
 	return r
 }
