@@ -78,21 +78,24 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAll
 		Clusters: make([]ClusterStatus, 0),
 	}
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 
 	for clusterName, kClients := range clients {
 		wg.Add(1)
-		go func(name string, client KafkaClients) {
+		go func(name string, kClients KafkaClients) {
 			defer wg.Done()
 			ping := kClients.client.Ping(ctx)
 			healthy := ping == nil
 			status := "connected"
 			message := "Saul Goodman"
 			if !healthy {
+				mu.Lock()
 				results.Clusters = append(results.Clusters, ClusterStatus{
-					Id:      clusterName,
+					Id:      name,
 					Status:  "error",
 					Message: fmt.Sprintf("Unable to connect to cluster %s - error: %s", name, ping.Error()),
 				})
+				mu.Unlock()
 				return
 			}
 
@@ -102,21 +105,25 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAll
 				status = "error"
 				message = fmt.Sprintf("Connected to cluster but unable to retrieve metadata: %s", err.Error())
 
+				mu.Lock()
 				results.Clusters = append(results.Clusters, ClusterStatus{
-					Id:      clusterName,
+					Id:      name, // Fixed: use name instead of clusterName
 					Status:  status,
 					Message: message,
 				})
+				mu.Unlock()
 				return
 			}
 
+			mu.Lock()
 			results.Clusters = append(results.Clusters, ClusterStatus{
-				Id:          clusterName,
+				Id:          name,
 				Status:      status,
 				Message:     message,
 				BrokerCount: len(meta.Brokers),
 				TopicCount:  len(meta.Topics),
 			})
+			mu.Unlock()
 		}(clusterName, kClients)
 	}
 
