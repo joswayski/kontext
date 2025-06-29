@@ -11,12 +11,12 @@ import (
 
 	"github.com/joswayski/kontext/apps/api/config"
 	"github.com/joswayski/kontext/apps/api/routes"
-	"github.com/joswayski/kontext/apps/api/services"
+	kafka "github.com/joswayski/kontext/apps/api/services/kafka"
 )
 
 func main() {
 	cfg := config.GetConfig()
-	kafkaClients := services.GetAllKafkaClients(*cfg)
+	kafkaClients := kafka.GetAllKafkaClients(*cfg)
 
 	r := routes.GetRoutes(kafkaClients)
 
