@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"strings"
@@ -69,8 +70,8 @@ func getKafkaClusters() map[string]KafkaClusterConfig {
 			clusterId = strings.TrimSuffix(clusterId, brokerUrlSuffix)
 			clusterId = strings.ToLower(clusterId)
 			urls := strings.Split(value, ",")
-			if len(urls) == 0 {
-				slog.Warn(fmt.Sprintf("No Kafka broker URLs found for %s", key))
+			if len(urls) == 0 || value == "" {
+				slog.Warn(fmt.Sprintf("A Kafka broker key was set (%s), but no URLs were provided", key))
 				continue
 			}
 			clusters[clusterId] = KafkaClusterConfig{
@@ -81,7 +82,7 @@ func getKafkaClusters() map[string]KafkaClusterConfig {
 	}
 
 	if len(clusters) == 0 {
-		slog.Warn("No Kafka clusters found in environment variables! Make sure to set the KAFKA_<CLUSTER_ID>_BROKER_URL environment variable for each cluster.")
+		log.Fatal("No Kafka clusters found in environment variables! Make sure to set the KAFKA_<CLUSTER_ID>_BROKER_URL environment variable for each cluster.")
 	} else {
 		s := ""
 		if len(clusters) != 1 {
@@ -90,7 +91,7 @@ func getKafkaClusters() map[string]KafkaClusterConfig {
 		slog.Info(fmt.Sprintf("Found %d cluster%s in the env config!", len(clusters), s))
 		idx := 1
 		for id := range clusters {
-			slog.Debug(fmt.Sprintf("%d. %s", idx, id))
+			slog.Info(fmt.Sprintf("%d. %s", idx, id))
 			idx++
 		}
 	}
