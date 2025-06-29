@@ -2,13 +2,12 @@
 
 Go API with Gin
 
+## Endpoints
 
-## Routes
+### GET /api/v1/clusters
+Returns cluster connectivity information.
 
-`GET /api/v1/clusters`
-
-Returns basic Cluster info
-
+**Response:**
 ```json
 {
   "analytics": {
@@ -22,47 +21,12 @@ Returns basic Cluster info
 }
 ```
 
+### GET /
+Returns basic endpoint info.
 
----
+## Error Handling
 
-## Catchalls
+**404 Not Found** - Returns available routes when a path doesn't exist
+**405 Method Not Allowed** - Returns alternative routes for the requested path
 
-`404 Not Found`
-
-Returns all other routes
-
-```json
-{
-  "message": "The route you're looking for was not found. Perhaps you wanted one of these?",
-  "routes": [
-    {
-      "method": "GET",
-      "path": "/",
-      "description": "Returns basic endpoint info."
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/clusters",
-      "description": "Returns the cluster IDs along with connectivity information"
-    }
-  ]
-}
-```
-
-`405 Method Not Allowed`
-Returns **alternative** routes that match the path
-
-
-```json
-{
-  "message": "Method 'POST' not allowed for path '/api/v1/clusters'. Did you mean one of these?",
-  "routes": [
-    {
-      "method": "GET",
-      "path": "/api/v1/clusters",
-      "description": "Returns the cluster IDs along with connectivity information"
-    }
-  ]
-}
-```
-
+Both error responses include a `routes` array with available endpoints and their descriptions.
