@@ -10,12 +10,15 @@ import (
 	"time"
 
 	"github.com/joswayski/kontext/apps/api/config"
-	"github.com/joswayski/kontext/apps/api/router"
+	"github.com/joswayski/kontext/apps/api/routes"
+	kafka "github.com/joswayski/kontext/apps/api/services/kafka"
 )
 
 func main() {
 	cfg := config.GetConfig()
-	r := router.GetRouter()
+	kafkaClients := kafka.GetAllKafkaClients(*cfg)
+
+	r := routes.GetRoutes(kafkaClients)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
