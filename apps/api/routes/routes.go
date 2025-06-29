@@ -20,6 +20,10 @@ func GetRoutes(kafkaClients map[string]*kgo.Client) *gin.Engine {
 	r.GET("", h.GetRootHandler)
 	r.GET("/api/v1/clusters", h.GetClustersHandler)
 
+	r.HandleMethodNotAllowed = true
+	r.NoMethod(h.GetNoMethodHandler)
+	r.NoRoute(h.GetNotFoundHandler)
+
 	// Get all routes once after they're registered
 	allRoutes := utils.GetAllRoutes(r)
 	h.Routes = allRoutes
