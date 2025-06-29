@@ -17,11 +17,11 @@ This will start the following services:
 - Web app at http://localhost:3000
 - API at http://localhost:4000
 - Kafka Production Cluster 
-    - Broker URL at http://localhost:19092
+    - Broker URL at kafka-production-0:9092 and localhost:19092
     - Admin API URL at http://localhost:19644 
     - Console URL at http://localhost:8080
 - Kafka Analytics Cluster 
-    - Broker URL at http://localhost-0:29092
+    - Broker URL at kafka-analytics-0:9092 and localhost:29092
     - Admin API URL at http://localhost:29644
     - Console URL at http://localhost:8081
 
