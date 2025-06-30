@@ -65,8 +65,8 @@ export default function Home() {
                 )}
 
                 <div>
-                  <p>Topics {cluster.topic_count}</p>
-                  <p>Size (in bytes) {cluster.total_size}</p>
+                  <p>Topics: {cluster.topic_count}</p>
+                  <p>Size (in bytes): {cluster.total_size}</p>
                 </div>
 
                 <p className="text-neutral-500">
