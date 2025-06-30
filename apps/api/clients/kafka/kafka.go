@@ -13,12 +13,12 @@ import (
 )
 
 type ClusterStatus struct {
-	Id      string `json:"id"`
-	Status  string `json:"status"`
-	Message string `json:"message"`
-	// Metadata    kadm.Metadata `json:"metadata"`
-	BrokerCount int `json:"broker_count"`
-	TopicCount  int `json:"topic_count"`
+	Id          string   `json:"id"`
+	Status      string   `json:"status"`
+	Message     string   `json:"message"`
+	BrokerCount int      `json:"broker_count"`
+	TopicCount  int      `json:"topic_count"`
+	BrokerURLs  []string `json:"broker_urls"`
 }
 
 func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
@@ -122,6 +122,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAll
 				Message:     message,
 				BrokerCount: len(meta.Brokers),
 				TopicCount:  len(meta.Topics),
+				BrokerURLs:  cfg.GetConfig().KafkaClusters[name].BrokerURLs,
 			})
 			mu.Unlock()
 		}(clusterName, kClients)
@@ -131,8 +132,4 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAll
 
 	results.ClusterCount = len(results.Clusters)
 	return results
-}
-
-func formatMetadata(meta kadm.Metadata) {
-
 }
