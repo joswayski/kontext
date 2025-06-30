@@ -64,14 +64,12 @@ export default function Home() {
                   </span>
                 )}
 
-                <div>
-                  <p>Topics: {cluster.topic_count}</p>
-                  <p>Size (in bytes): {cluster.total_size}</p>
-                </div>
-
-                <p className="text-neutral-500">
-                  Brokers: {cluster.brokers.join(",")}
-                </p>
+                <p>Topics: {cluster.topic_count}</p>
+                <p>Size (in bytes): {cluster.total_size}</p>
+                <p className="">Brokers: {cluster.brokers.join(",")}</p>
+                {cluster?.message && cluster.status !== "connected" ? (
+                  <p className="text-neutral-500">Message: {cluster.message}</p>
+                ) : null}
               </div>
             );
           })}
