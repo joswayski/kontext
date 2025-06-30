@@ -6,19 +6,21 @@ import (
 	"log"
 	"log/slog"
 	"sync"
+	"time"
 
 	cfg "github.com/joswayski/kontext/apps/api/config"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-type ClusterStatus struct {
+type ClusterData struct {
 	Id          string   `json:"id"`
 	Status      string   `json:"status"`
 	Message     string   `json:"message"`
 	BrokerCount int      `json:"broker_count"`
 	TopicCount  int      `json:"topic_count"`
 	Brokers     []string `json:"brokers"`
+	TotalSize   int      `json:"total_size"`
 }
 
 func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
@@ -69,66 +71,103 @@ func GetAllKafkaClients(cfg cfg.KontextConfig) map[string]KafkaClients {
 }
 
 type GetAllClustersResponse struct {
-	Clusters     []ClusterStatus `json:"clusters"`
-	ClusterCount int             `json:"cluster_count"`
+	Clusters     []ClusterData `json:"clusters"`
+	ClusterCount int           `json:"cluster_count"`
 }
 
 func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAllClustersResponse {
 	results := GetAllClustersResponse{
-		Clusters: make([]ClusterStatus, 0),
+		Clusters: make([]ClusterData, 0),
 	}
-	var wg sync.WaitGroup
+	var wg1 sync.WaitGroup
 	var mu sync.Mutex
 
 	for clusterName, kClients := range clients {
-		wg.Add(1)
+		wg1.Add(1)
 		go func(name string, kClients KafkaClients) {
-			defer wg.Done()
-			ping := kClients.client.Ping(ctx)
-			healthy := ping == nil
+			defer wg1.Done()
+
+			var wg2 sync.WaitGroup
+			var metadata kadm.Metadata
+			var metaErr error
+			var logDirs kadm.DescribedAllLogDirs
+			var logDirsErr error
+
+			wg2.Add(2)
+
+			go func() {
+				slog.Info(fmt.Sprintf("%s - Starting metadata retrieval  %s", clusterName, time.Now()))
+				defer wg2.Done()
+				metadata, metaErr = kClients.adminClient.Metadata(ctx)
+				slog.Info(fmt.Sprintf("%s - ending metadata retrieval %s", clusterName, time.Now()))
+
+			}()
+
+			go func() {
+				slog.Info(fmt.Sprintf("%s - Starting log retrieval %s", clusterName, time.Now()))
+				defer wg2.Done()
+				logDirs, logDirsErr = kClients.adminClient.DescribeAllLogDirs(ctx, nil)
+				slog.Info(fmt.Sprintf("%s - ending log retrieval %s", clusterName, time.Now()))
+			}()
+
+			wg2.Wait()
+
 			status := "connected"
 			message := "Saul Goodman"
-			if !healthy {
-				mu.Lock()
-				results.Clusters = append(results.Clusters, ClusterStatus{
-					Id:      name,
-					Status:  "error",
-					Message: fmt.Sprintf("Unable to connect to cluster %s - error: %s", name, ping.Error()),
-				})
-				mu.Unlock()
-				return
-			}
 
-			meta, err := kClients.adminClient.Metadata(ctx)
-
-			if err != nil {
+			if metaErr != nil {
 				status = "error"
-				message = fmt.Sprintf("Connected to cluster but unable to retrieve metadata: %s", err.Error())
-
-				mu.Lock()
-				results.Clusters = append(results.Clusters, ClusterStatus{
-					Id:      name,
-					Status:  status,
-					Message: message,
-				})
-				mu.Unlock()
-				return
+				message = fmt.Sprintf("Unable to retrieve metadata: %s", metaErr.Error())
 			}
 
+			if logDirsErr != nil {
+				status = "error"
+				message = fmt.Sprintf("Unable to retrieve cluster storage size: %s", logDirsErr.Error())
+			}
+
+			var totalClusterSize int64
+
+			for _, brokerLogDirs := range logDirs {
+				if brokerLogDirs.Error() != nil {
+					slog.Warn(fmt.Sprintf("Error retrieving log directories for brokers in cluster %s", clusterName))
+					continue
+				}
+
+				for _, logDir := range brokerLogDirs {
+					for _, partitionMap := range logDir.Topics {
+						for _, partitionData := range partitionMap {
+							totalClusterSize += partitionData.Size
+						}
+					}
+
+				}
+			}
+
+			brokerCount := 0
+			if metadata.Brokers != nil {
+				brokerCount = len(metadata.Brokers)
+			}
+
+			topicCount := 0
+			if metadata.Topics != nil {
+				topicCount = len(metadata.Topics)
+			}
 			mu.Lock()
-			results.Clusters = append(results.Clusters, ClusterStatus{
+			results.Clusters = append(results.Clusters, ClusterData{
 				Id:          name,
 				Status:      status,
 				Message:     message,
-				BrokerCount: len(meta.Brokers),
-				TopicCount:  len(meta.Topics),
-				Brokers:     cfg.GetConfig().KafkaClusters[name].BrokerURLs,
+				BrokerCount: brokerCount,
+				TopicCount:  topicCount,
+				// ! TODO - this is refetching the config, pass this through as state or build from metadata
+				Brokers:   cfg.GetConfig().KafkaClusters[name].BrokerURLs,
+				TotalSize: int(totalClusterSize),
 			})
 			mu.Unlock()
 		}(clusterName, kClients)
 	}
 
-	wg.Wait()
+	wg1.Wait()
 
 	results.ClusterCount = len(results.Clusters)
 	return results
