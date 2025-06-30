@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	kafka "github.com/joswayski/kontext/apps/api/clients/kafka"
 	"github.com/joswayski/kontext/apps/api/config"
 	"github.com/joswayski/kontext/apps/api/routes"
-	kafka "github.com/joswayski/kontext/apps/api/services/kafka"
 )
 
 func main() {

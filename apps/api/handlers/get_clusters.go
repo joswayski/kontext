@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	kafka "github.com/joswayski/kontext/apps/api/services/kafka"
+	kafka "github.com/joswayski/kontext/apps/api/clients/kafka"
 )
 
 func (h *Handler) GetClustersHandler(c *gin.Context) {
-	results := kafka.GetClusterStatuses(c.Request.Context(), h.KafkaClients)
+	results := kafka.GetAllClusters(c.Request.Context(), h.KafkaClients)
 	c.JSON(http.StatusOK, results)
 }

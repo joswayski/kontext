@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	services "github.com/joswayski/kontext/apps/api/clients/kafka"
 	"github.com/joswayski/kontext/apps/api/utils"
-	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 type Handler struct {
-	KafkaClients map[string]*kgo.Client
+	KafkaClients map[string]services.KafkaClients
 	Routes       []utils.Route
 }

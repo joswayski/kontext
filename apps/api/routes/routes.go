@@ -2,12 +2,12 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	clients "github.com/joswayski/kontext/apps/api/clients/kafka"
 	"github.com/joswayski/kontext/apps/api/handlers"
 	"github.com/joswayski/kontext/apps/api/utils"
-	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-func GetRoutes(kafkaClients map[string]*kgo.Client) *gin.Engine {
+func GetRoutes(kafkaClients map[string]clients.KafkaClients) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(gin.Logger())
