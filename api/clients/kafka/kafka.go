@@ -6,7 +6,6 @@ import (
 	"log"
 	"log/slog"
 	"sync"
-	"time"
 
 	cfg "github.com/joswayski/kontext/api/config"
 	"github.com/twmb/franz-go/pkg/kadm"
@@ -85,9 +84,9 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 	var wg1 sync.WaitGroup
 	var mu sync.Mutex
 
-	for clusterName, kClients := range clients {
+	for _, cluster := range clients {
 		wg1.Add(1)
-		go func(name string, cluster KafkaCluster) {
+		go func(cluster KafkaCluster) {
 			defer wg1.Done()
 
 			var wg2 sync.WaitGroup
@@ -99,18 +98,13 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 			wg2.Add(2)
 
 			go func() {
-				slog.Info(fmt.Sprintf("%s - Starting metadata retrieval  %s", clusterName, time.Now()))
 				defer wg2.Done()
 				metadata, metaErr = cluster.adminClient.Metadata(ctx)
-				slog.Info(fmt.Sprintf("%s - ending metadata retrieval %s", clusterName, time.Now()))
-
 			}()
 
 			go func() {
-				slog.Info(fmt.Sprintf("%s - Starting log retrieval %s", clusterName, time.Now()))
 				defer wg2.Done()
-				logDirs, logDirsErr = kClients.adminClient.DescribeAllLogDirs(ctx, nil)
-				slog.Info(fmt.Sprintf("%s - ending log retrieval %s", clusterName, time.Now()))
+				logDirs, logDirsErr = cluster.adminClient.DescribeAllLogDirs(ctx, nil)
 			}()
 
 			wg2.Wait()
@@ -132,7 +126,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 
 			for _, brokerLogDirs := range logDirs {
 				if brokerLogDirs.Error() != nil {
-					slog.Warn(fmt.Sprintf("Error retrieving log directories for brokers in cluster %s", clusterName))
+					slog.Warn(fmt.Sprintf("Error retrieving log directories for brokers in cluster %s", cluster.config.Id))
 					continue
 				}
 
@@ -157,7 +151,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 			}
 			mu.Lock()
 			results.Clusters = append(results.Clusters, ClusterData{
-				Id:          name,
+				Id:          cluster.config.Id,
 				Status:      status,
 				Message:     message,
 				BrokerCount: brokerCount,
@@ -166,7 +160,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 				TotalSize:   int(totalClusterSize),
 			})
 			mu.Unlock()
-		}(clusterName, kClients)
+		}(cluster)
 	}
 
 	wg1.Wait()
