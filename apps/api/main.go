@@ -16,7 +16,7 @@ import (
 
 func main() {
 	cfg := config.GetConfig()
-	kafkaClients := kafka.GetAllKafkaClients(*cfg)
+	kafkaClients := kafka.GetKafkaClustersFromConfig(*cfg)
 
 	r := routes.GetRoutes(kafkaClients)
 

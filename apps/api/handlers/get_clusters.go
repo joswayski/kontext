@@ -8,6 +8,6 @@ import (
 )
 
 func (h *Handler) GetClustersHandler(c *gin.Context) {
-	results := kafka.GetAllClusters(c.Request.Context(), h.KafkaClients)
+	results := kafka.GetAllClusters(c.Request.Context(), h.KafkaClusters)
 	c.JSON(http.StatusOK, results)
 }
