@@ -162,9 +162,8 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 				Message:     message,
 				BrokerCount: brokerCount,
 				TopicCount:  topicCount,
-				// ! TODO - this is refetching the config, pass this through as state or build from metadata
-				Brokers:   cfg.GetConfig().KafkaClusters[name].BrokerURLs,
-				TotalSize: int(totalClusterSize),
+				Brokers:     cluster.config.BrokerURLs,
+				TotalSize:   int(totalClusterSize),
 			})
 			mu.Unlock()
 		}(clusterName, kClients)
