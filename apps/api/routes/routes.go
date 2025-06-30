@@ -7,14 +7,14 @@ import (
 	"github.com/joswayski/kontext/apps/api/utils"
 )
 
-func GetRoutes(kafkaClients map[string]clients.KafkaClients) *gin.Engine {
+func GetRoutes(kafkaClusters map[string]clients.KafkaCluster) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
 	h := handlers.Handler{
-		KafkaClients: kafkaClients,
+		KafkaClusters: kafkaClusters,
 	}
 
 	r.GET("", h.GetRootHandler)

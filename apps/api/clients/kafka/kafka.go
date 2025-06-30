@@ -42,13 +42,15 @@ func newAdminKafkaClient(kgoClient *kgo.Client) *kadm.Client {
 	return acl
 }
 
-type KafkaClients struct {
+type KafkaCluster struct {
 	client      *kgo.Client
 	adminClient *kadm.Client
+	config      cfg.KafkaClusterConfig
 }
 
-func GetAllKafkaClients(cfg cfg.KontextConfig) map[string]KafkaClients {
-	allClients := make(map[string]KafkaClients)
+// Returns the normal client, admin client, and configs for all clusters
+func GetKafkaClustersFromConfig(cfg cfg.KontextConfig) map[string]KafkaCluster {
+	allClusters := make(map[string]KafkaCluster)
 
 	for clusterId, clusterConfig := range cfg.KafkaClusters {
 		normalClient, err := newKafkaClient(clusterConfig)
@@ -60,14 +62,14 @@ func GetAllKafkaClients(cfg cfg.KontextConfig) map[string]KafkaClients {
 		adminClient := newAdminKafkaClient(normalClient)
 		slog.Info(fmt.Sprintf("Created admin client for %s cluster", clusterId))
 
-		clConfig := KafkaClients{
+		allClusters[clusterId] = KafkaCluster{
 			client:      normalClient,
 			adminClient: adminClient,
+			config:      clusterConfig,
 		}
-		allClients[clusterId] = clConfig
 	}
 
-	return allClients
+	return allClusters
 }
 
 type GetAllClustersResponse struct {
@@ -75,7 +77,8 @@ type GetAllClustersResponse struct {
 	ClusterCount int           `json:"cluster_count"`
 }
 
-func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAllClustersResponse {
+// Returns preformatted cluster data
+func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAllClustersResponse {
 	results := GetAllClustersResponse{
 		Clusters: make([]ClusterData, 0),
 	}
@@ -84,7 +87,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAll
 
 	for clusterName, kClients := range clients {
 		wg1.Add(1)
-		go func(name string, kClients KafkaClients) {
+		go func(name string, cluster KafkaCluster) {
 			defer wg1.Done()
 
 			var wg2 sync.WaitGroup
@@ -98,7 +101,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAll
 			go func() {
 				slog.Info(fmt.Sprintf("%s - Starting metadata retrieval  %s", clusterName, time.Now()))
 				defer wg2.Done()
-				metadata, metaErr = kClients.adminClient.Metadata(ctx)
+				metadata, metaErr = cluster.adminClient.Metadata(ctx)
 				slog.Info(fmt.Sprintf("%s - ending metadata retrieval %s", clusterName, time.Now()))
 
 			}()
