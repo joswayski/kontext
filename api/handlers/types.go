@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	kafka "github.com/joswayski/kontext/apps/api/clients/kafka"
-	"github.com/joswayski/kontext/apps/api/utils"
+	kafka "github.com/joswayski/kontext/api/clients/kafka"
+	"github.com/joswayski/kontext/api/utils"
 )
 
 type Handler struct {

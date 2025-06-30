@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	cfg "github.com/joswayski/kontext/apps/api/config"
+	cfg "github.com/joswayski/kontext/api/config"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )

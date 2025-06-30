@@ -2,9 +2,9 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	clients "github.com/joswayski/kontext/apps/api/clients/kafka"
-	"github.com/joswayski/kontext/apps/api/handlers"
-	"github.com/joswayski/kontext/apps/api/utils"
+	clients "github.com/joswayski/kontext/api/clients/kafka"
+	"github.com/joswayski/kontext/api/handlers"
+	"github.com/joswayski/kontext/api/utils"
 )
 
 func GetRoutes(kafkaClusters map[string]clients.KafkaCluster) *gin.Engine {
