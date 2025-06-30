@@ -1,4 +1,4 @@
-module github.com/joswayski/kontext/apps/api
+module github.com/joswayski/kontext/api
 
 go 1.24.4
 

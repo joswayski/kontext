@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joswayski/kontext/apps/api/utils"
+	"github.com/joswayski/kontext/api/utils"
 )
 
 func (h *Handler) GetNoMethodHandler(c *gin.Context) {

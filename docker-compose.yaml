@@ -13,7 +13,7 @@ volumes:
 services:
   api:
     build:
-      context: ./apps/api
+      context: ./api
     env_file:
       - .env
     ports:
@@ -25,7 +25,7 @@ services:
 
   web:
     build:
-      context: ./apps/web
+      context: ./web
     env_file:
       - .env
     ports:
