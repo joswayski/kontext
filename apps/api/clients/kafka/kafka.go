@@ -18,7 +18,7 @@ type ClusterStatus struct {
 	Message     string   `json:"message"`
 	BrokerCount int      `json:"broker_count"`
 	TopicCount  int      `json:"topic_count"`
-	BrokerURLs  []string `json:"broker_urls"`
+	Brokers     []string `json:"brokers"`
 }
 
 func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
@@ -107,7 +107,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAll
 
 				mu.Lock()
 				results.Clusters = append(results.Clusters, ClusterStatus{
-					Id:      name, // Fixed: use name instead of clusterName
+					Id:      name,
 					Status:  status,
 					Message: message,
 				})
@@ -122,7 +122,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaClients) GetAll
 				Message:     message,
 				BrokerCount: len(meta.Brokers),
 				TopicCount:  len(meta.Topics),
-				BrokerURLs:  cfg.GetConfig().KafkaClusters[name].BrokerURLs,
+				Brokers:     cfg.GetConfig().KafkaClusters[name].BrokerURLs,
 			})
 			mu.Unlock()
 		}(clusterName, kClients)

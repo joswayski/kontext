@@ -1,9 +1,8 @@
 # Kontext
 
-I want to build a tool that visualizes the event flows in my Kafka clusters and gives me **Kontext** on what the consumers *DO* with the data (business logic). 
+A tool to automatically visualize the event flows in your Kafka clusters and give you **Kontext** on what consumers actually **do** with the data (in other words, your business logic). 
 
-This project is in the early stages of development, contributions are welcome!
-
+Nobody likes keeping diagrams or Markdown in sync anyway.
 
 ## Getting Started
 
