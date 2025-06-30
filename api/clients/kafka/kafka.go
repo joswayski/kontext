@@ -86,7 +86,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 
 	for _, cluster := range clients {
 		wg1.Add(1)
-		go func(cluster KafkaCluster) {
+		go func() {
 			defer wg1.Done()
 
 			var wg2 sync.WaitGroup
@@ -160,7 +160,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 				TotalSize:   int(totalClusterSize),
 			})
 			mu.Unlock()
-		}(cluster)
+		}()
 	}
 
 	wg1.Wait()

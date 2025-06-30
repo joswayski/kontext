@@ -23,7 +23,7 @@ type KafkaClusterConfig struct {
 
 func GetConfig() *KontextConfig {
 
-	err := godotenv.Load("../../.env")
+	err := godotenv.Load("../.env")
 	if err != nil {
 		slog.Warn(fmt.Sprintf("Failed to load .env file from root: %v", err))
 	}
