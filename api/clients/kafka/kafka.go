@@ -168,3 +168,7 @@ func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAll
 	results.ClusterCount = len(results.Clusters)
 	return results
 }
+
+func GetClusterById(ctx context.Context, clients map[string]KafkaCluster) string {
+	return "TEST"
+}
