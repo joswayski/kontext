@@ -12,7 +12,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-type ClusterData struct {
+type ClusterMetaData struct {
 	Id          string   `json:"id"`
 	Status      string   `json:"status"`
 	Message     string   `json:"message"`
@@ -71,104 +71,119 @@ func GetKafkaClustersFromConfig(cfg cfg.KontextConfig) map[string]KafkaCluster {
 	return allClusters
 }
 
-type GetAllClustersResponse struct {
-	Clusters     []ClusterData `json:"clusters"`
-	ClusterCount int           `json:"cluster_count"`
+type GetMetadataForAllClustersResponse struct {
+	Clusters     []ClusterMetaData `json:"clusters"`
+	ClusterCount int               `json:"cluster_count"`
 }
 
-// Returns preformatted cluster data
-func GetAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetAllClustersResponse {
-	results := GetAllClustersResponse{
-		Clusters: make([]ClusterData, 0),
+func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) (ClusterMetaData, error) {
+	var wg sync.WaitGroup
+	var metadata kadm.Metadata
+	var metaErr error
+	var logDirs kadm.DescribedAllLogDirs
+	var logDirsErr error
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		// todo get more topic data, and parse it trim it below
+		metadata, metaErr = cluster.adminClient.Metadata(ctx)
+	}()
+
+	go func() {
+		defer wg.Done()
+		logDirs, logDirsErr = cluster.adminClient.DescribeAllLogDirs(ctx, nil)
+	}()
+
+	wg.Wait()
+
+	status := "connected"
+	message := "Saul Goodman"
+
+	if metaErr != nil {
+		status = "error"
+		message = fmt.Sprintf("Unable to retrieve metadata: %s", metaErr.Error())
 	}
-	var wg1 sync.WaitGroup
-	var mu sync.Mutex
+
+	if logDirsErr != nil {
+		status = "error"
+		message = fmt.Sprintf("Unable to retrieve cluster storage size: %s", logDirsErr.Error())
+	}
+
+	var totalClusterSize int64
+
+	for _, brokerLogDirs := range logDirs {
+		if brokerLogDirs.Error() != nil {
+			slog.Warn(fmt.Sprintf("Error retrieving log directories for brokers in cluster %s", cluster.config.Id))
+			continue
+		}
+
+		for _, logDir := range brokerLogDirs {
+			for _, partitionMap := range logDir.Topics {
+				for _, partitionData := range partitionMap {
+					totalClusterSize += partitionData.Size
+				}
+			}
+		}
+	}
+
+	brokerCount := 0
+	if metadata.Brokers != nil {
+		brokerCount = len(metadata.Brokers)
+	}
+
+	topicCount := 0
+	if metadata.Topics != nil {
+		topicCount = len(metadata.Topics)
+	}
+
+	return ClusterMetaData{
+		Id:          cluster.config.Id,
+		Status:      status,
+		Message:     message,
+		BrokerCount: brokerCount,
+		TopicCount:  topicCount,
+		Brokers:     cluster.config.BrokerURLs,
+		TotalSize:   int(totalClusterSize),
+	}, nil
+
+}
+
+func GetMetadataForAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetMetadataForAllClustersResponse {
+	results := GetMetadataForAllClustersResponse{
+		Clusters: make([]ClusterMetaData, 0),
+	}
+	var wg sync.WaitGroup
+
+	resultChan := make(chan ClusterMetaData, len(clients))
 
 	for _, cluster := range clients {
-		wg1.Add(1)
-		go func() {
-			defer wg1.Done()
+		wg.Add(1)
+		go func(c KafkaCluster) {
+			defer wg.Done()
+			ClusterMetaData, err := getMetadataForCluster(ctx, c)
 
-			var wg2 sync.WaitGroup
-			var metadata kadm.Metadata
-			var metaErr error
-			var logDirs kadm.DescribedAllLogDirs
-			var logDirsErr error
-
-			wg2.Add(2)
-
-			go func() {
-				defer wg2.Done()
-				metadata, metaErr = cluster.adminClient.Metadata(ctx)
-			}()
-
-			go func() {
-				defer wg2.Done()
-				logDirs, logDirsErr = cluster.adminClient.DescribeAllLogDirs(ctx, nil)
-			}()
-
-			wg2.Wait()
-
-			status := "connected"
-			message := "Saul Goodman"
-
-			if metaErr != nil {
-				status = "error"
-				message = fmt.Sprintf("Unable to retrieve metadata: %s", metaErr.Error())
+			if err != nil {
+				// todo
 			}
+			resultChan <- ClusterMetaData
+		}(cluster)
 
-			if logDirsErr != nil {
-				status = "error"
-				message = fmt.Sprintf("Unable to retrieve cluster storage size: %s", logDirsErr.Error())
-			}
-
-			var totalClusterSize int64
-
-			for _, brokerLogDirs := range logDirs {
-				if brokerLogDirs.Error() != nil {
-					slog.Warn(fmt.Sprintf("Error retrieving log directories for brokers in cluster %s", cluster.config.Id))
-					continue
-				}
-
-				for _, logDir := range brokerLogDirs {
-					for _, partitionMap := range logDir.Topics {
-						for _, partitionData := range partitionMap {
-							totalClusterSize += partitionData.Size
-						}
-					}
-
-				}
-			}
-
-			brokerCount := 0
-			if metadata.Brokers != nil {
-				brokerCount = len(metadata.Brokers)
-			}
-
-			topicCount := 0
-			if metadata.Topics != nil {
-				topicCount = len(metadata.Topics)
-			}
-			mu.Lock()
-			results.Clusters = append(results.Clusters, ClusterData{
-				Id:          cluster.config.Id,
-				Status:      status,
-				Message:     message,
-				BrokerCount: brokerCount,
-				TopicCount:  topicCount,
-				Brokers:     cluster.config.BrokerURLs,
-				TotalSize:   int(totalClusterSize),
-			})
-			mu.Unlock()
-		}()
 	}
 
-	wg1.Wait()
+	wg.Wait()
+	close(resultChan)
 
+	for ClusterMetaData := range resultChan {
+		results.Clusters = append(results.Clusters, ClusterMetaData)
+	}
 	results.ClusterCount = len(results.Clusters)
 	return results
 }
 
 func GetClusterById(ctx context.Context, clients map[string]KafkaCluster) string {
+	// Get metdata
+
 	return "TEST"
 }
