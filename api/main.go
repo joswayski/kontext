@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -14,27 +15,26 @@ import (
 	"github.com/joswayski/kontext/api/routes"
 )
 
-func main() {
-	cfg := config.GetConfig()
-	kafkaClients := kafka.GetKafkaClustersFromConfig(*cfg)
+func startServer(srv *http.Server, cfg *config.KontextConfig) {
+	slog.Info("Starting API server on port " + cfg.Port)
+	err := srv.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		slog.Error("Error running API server", "error", err)
+		os.Exit(1)
+	}
+}
 
-	r := routes.GetRoutes(kafkaClients)
-
-	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: r,
+func startConsumers(kafkaClients map[string]kafka.KafkaCluster) {
+	slog.Info("Starting consumers")
+	if len(kafkaClients) == 0 {
+		slog.Warn("No Kafka clients configured - consumers shutting down.")
+		return
 	}
 
-	go func() {
-		slog.Info("Starting API server on port " + cfg.Port)
-		err := srv.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
-			slog.Error("Error running API server", "error", err)
-			os.Exit(1)
-		}
-	}()
+	// for _, cluster := range kafkaClients {}
+}
 
-	// Graceful shutdown
+func waitForShutdown(srv *http.Server) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -49,4 +49,32 @@ func main() {
 	}
 
 	slog.Info("API server shutdown complete")
+}
+
+func main() {
+	cfg := config.GetConfig()
+	kafkaClients := kafka.GetKafkaClustersFromConfig(*cfg)
+
+	r := routes.GetRoutes(kafkaClients)
+
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: r,
+	}
+
+	ctx := context.Background()
+
+	var topicWg sync.WaitGroup
+	topicWg.Add(1)
+	go func() {
+		defer topicWg.Done()
+		kafka.CreateTopics(ctx, kafkaClients)
+	}()
+	topicWg.Wait()
+
+	go kafka.SeedTopics(ctx, kafkaClients)
+	go startConsumers(kafkaClients) // TODO temporary
+	go startServer(srv, cfg)
+
+	waitForShutdown(srv)
 }

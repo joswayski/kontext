@@ -20,6 +20,7 @@ func GetRoutes(kafkaClusters map[string]clients.KafkaCluster) *gin.Engine {
 	r.GET("", h.GetRootHandler)
 	r.GET("/health", h.GetRootHandler)
 	r.GET("/api/v1/clusters", h.GetClustersHandler)
+	r.GET("/api/v1/clusters/:clusterId", h.GetClusterByIdHandler)
 
 	r.HandleMethodNotAllowed = true
 	r.NoMethod(h.GetNoMethodHandler)
