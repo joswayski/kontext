@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
 	cfg "github.com/joswayski/kontext/api/config"
@@ -26,31 +27,34 @@ type ClusterMetaData struct {
 }
 
 func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
+	groupId := fmt.Sprintf("kontext-%s-consumer", kafkaConfig.Id)
 	cl, err := kgo.NewClient(
 		kgo.SeedBrokers(kafkaConfig.BrokerURLs...),
-		kgo.ConsumerGroup(fmt.Sprintf("kontext-%s-consumer", kafkaConfig.Id)),
+		kgo.ConsumerGroup(groupId),
 		kgo.ConsumeTopics(topics...),
 	)
 
-	adm := kadm.NewClient(cl)
-	tcfg, _ := adm.DescribeTopicConfigs(context.Background(), "orders")
-	slog.Info(fmt.Sprintf("topic configs %v", tcfg))
-	// slog.Info("Clients created! go routine calling")
-	// go func() {
-	// 	slog.Info("goroutinge called")
-	// 	for {
-	// 		cl2m, _ := cl2.GroupMetadata()
-	// 		slog.Info(fmt.Sprintf("client 2 %s", cl2m))
+	if kafkaConfig.Id == "production" {
+		// adm := kadm.NewClient(cl)
+		// tcfg, _ := adm.DescribeGroups(context.Background(), groupId)
 
-	// 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(3*time.Second))
-	// 		cl2.PollFetches(ctx)
+		cc := cl.GetConsumeTopics()
+		slog.Info(fmt.Sprintf("topic configs %s", cc))
 
-	// 		cl3.PollFetches(ctx)
+		go func() {
 
-	// 		cancel()
+			for {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
-	// 	}
-	// }()
+				slog.Info("Polling kafka prod")
+				cl.PollFetches(ctx)
+
+				cancel()
+
+			}
+
+		}()
+	}
 
 	if err != nil {
 		slog.Error(fmt.Sprintf("Could not get Kafka client for %s cluster. Error: %s", kafkaConfig.Id, err))
@@ -63,6 +67,7 @@ func newAdminKafkaClient(kgoClient *kgo.Client) *kadm.Client {
 	acl := kadm.NewClient(
 		kgoClient,
 	)
+
 	return acl
 }
 
@@ -241,7 +246,7 @@ type GetClusterByIdResponse struct {
 	Metadata ClusterMetaData      `json:"metadata"`
 	Brokers  []kadm.BrokerDetails `json:"brokers"`
 	Topics   []kadm.TopicDetails  `json:"topics"`
-	Groups   kadm.ListedGroups    `json:"groups"`
+	Groups   kadm.DescribedGroups `json:"groups"`
 }
 
 func GetClusterById(ctx context.Context, id string, clients map[string]KafkaCluster) (GetClusterByIdResponse, error) {
@@ -255,11 +260,21 @@ func GetClusterById(ctx context.Context, id string, clients map[string]KafkaClus
 		return GetClusterByIdResponse{}, fmt.Errorf("error retrieving metadata: %s", metadata.Message)
 	}
 
-	groups, _ := cluster.adminClient.ListGroups(ctx)
+	// groups, _ := cluster.adminClient.ListGroups(ctx)
 
+	// Step A: Get the names of all groups in the cluster.
+	listedGroups, err := cluster.adminClient.ListGroups(ctx)
+	if err != nil {
+		return GetClusterByIdResponse{}, fmt.Errorf("could not list groups: %w", err)
+	}
+
+	describedGroups, err := cluster.adminClient.DescribeGroups(ctx, listedGroups.Groups()...)
+	if err != nil {
+		return GetClusterByIdResponse{}, fmt.Errorf("could not describe groups: %w", err)
+	}
 	return GetClusterByIdResponse{
 		Metadata: metadata,
-		Groups:   groups,
+		Groups:   describedGroups,
 	}, nil
 }
 
