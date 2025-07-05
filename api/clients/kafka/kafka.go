@@ -32,6 +32,9 @@ func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
 		kgo.ConsumeTopics(topics...),
 	)
 
+	adm := kadm.NewClient(cl)
+	tcfg, _ := adm.DescribeTopicConfigs(context.Background(), "orders")
+	slog.Info(fmt.Sprintf("topic configs %v", tcfg))
 	// slog.Info("Clients created! go routine calling")
 	// go func() {
 	// 	slog.Info("goroutinge called")
