@@ -71,16 +71,18 @@ func main() {
 		Handler: r,
 	}
 
+	ctx := context.Background()
+
 	var topicWg sync.WaitGroup
 	topicWg.Add(1)
 	go func() {
 		defer topicWg.Done()
-		kafka.CreateTopics(context.Background(), kafkaClients)
+		kafka.CreateTopics(ctx, kafkaClients)
 	}()
 	topicWg.Wait()
 
-	go startProducers(kafkaClients)
-	go starConsumers(kafkaClients)
+	go kafka.SeedTopics(ctx, kafkaClients)
+	go starConsumers(kafkaClients) // TODO temporary
 	go startServer(srv, cfg)
 
 	waitForShutdown(srv)

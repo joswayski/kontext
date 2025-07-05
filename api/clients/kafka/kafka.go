@@ -210,11 +210,7 @@ func GetClusterById(ctx context.Context, id string, clients map[string]KafkaClus
 		return GetClusterByIdResponse{}, fmt.Errorf("error retrieving metadata: %s", metadata.Message)
 	}
 
-	// Get brokers
-
 	cluster.adminClient.ListGroups(ctx)
-
-	// Get topics
 
 	return GetClusterByIdResponse{
 		Metadata: metadata,
@@ -235,17 +231,18 @@ func CreateTopics(ctx context.Context, clients map[string]KafkaCluster) {
 	}
 }
 
+// TODO temporary will cleanup in next PR
 type SampleMessage struct {
 	MessageType string      `json:"message_type"`
 	Data        interface{} `json:"data"`
 }
 
+// TODO temporary will cleanup in next PR
 func SeedTopics(ctx context.Context, clients map[string]KafkaCluster) {
 	slog.Info("Seeding topics...")
 
 	for _, topic := range topics {
 		for _, cluster := range clients {
-			// Create sample message
 			sampleMsg := SampleMessage{
 				MessageType: gofakeit.Word(),
 				Data: map[string]string{
@@ -253,14 +250,12 @@ func SeedTopics(ctx context.Context, clients map[string]KafkaCluster) {
 				},
 			}
 
-			// Convert to JSON bytes
 			jsonData, err := json.Marshal(sampleMsg)
 			if err != nil {
 				slog.Error("Failed to marshal message", "error", err)
 				continue
 			}
 
-			// Produce message to topic
 			cluster.client.Produce(ctx, &kgo.Record{
 				Topic: topic,
 				Key:   []byte(gofakeit.UUID()),
