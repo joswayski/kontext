@@ -22,6 +22,11 @@ func (h *Handler) GetClusterByIdHandler(c *gin.Context) {
 		return
 	}
 
-	results := kafka.GetClusterById(c.Request.Context(), h.KafkaClusters)
+	results, err := kafka.GetClusterById(c.Request.Context(), cid, h.KafkaClusters)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, results)
 }
