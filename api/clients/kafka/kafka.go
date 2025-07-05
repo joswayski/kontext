@@ -16,18 +16,38 @@ import (
 )
 
 type ClusterMetaData struct {
-	Id          string `json:"id"`
-	Status      string `json:"status"`
-	Message     string `json:"message"`
-	BrokerCount int    `json:"broker_count"`
-	TopicCount  int    `json:"topic_count"`
-	TotalSize   int64  `json:"total_size"`
+	Id                 string `json:"id"`
+	Status             string `json:"status"`
+	Message            string `json:"message"`
+	BrokerCount        int    `json:"broker_count"`
+	TopicCount         int    `json:"topic_count"`
+	ConsumerGroupCount int    `json:"consumer_group_count"`
+	TotalSize          int64  `json:"total_size"`
 }
 
 func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
 	cl, err := kgo.NewClient(
 		kgo.SeedBrokers(kafkaConfig.BrokerURLs...),
-		kgo.ConsumerGroup(fmt.Sprintf("kontext-%s-consumer", kafkaConfig.Id)))
+		kgo.ConsumerGroup(fmt.Sprintf("kontext-%s-consumer", kafkaConfig.Id)),
+		kgo.ConsumeTopics(topics...),
+	)
+
+	// slog.Info("Clients created! go routine calling")
+	// go func() {
+	// 	slog.Info("goroutinge called")
+	// 	for {
+	// 		cl2m, _ := cl2.GroupMetadata()
+	// 		slog.Info(fmt.Sprintf("client 2 %s", cl2m))
+
+	// 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(3*time.Second))
+	// 		cl2.PollFetches(ctx)
+
+	// 		cl3.PollFetches(ctx)
+
+	// 		cancel()
+
+	// 	}
+	// }()
 
 	if err != nil {
 		slog.Error(fmt.Sprintf("Could not get Kafka client for %s cluster. Error: %s", kafkaConfig.Id, err))
@@ -80,7 +100,7 @@ type GetMetadataForAllClustersResponse struct {
 
 func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMetaData {
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	var metadata kadm.Metadata
 	var metaErr error
@@ -96,6 +116,13 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		logDirs, logDirsErr = cluster.adminClient.DescribeAllLogDirs(ctx, nil)
 	}()
 
+	var consumerGroups kadm.ListedGroups
+	var consumerGroupsError error
+
+	go func() {
+		defer wg.Done()
+		consumerGroups, consumerGroupsError = cluster.adminClient.ListGroups(ctx)
+	}()
 	wg.Wait()
 
 	status := "connected"
@@ -119,6 +146,15 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		}
 	}
 
+	if consumerGroupsError != nil {
+		msg := fmt.Sprintf("Unable to retrieve consumer groups: %s.", logDirsErr.Error())
+		return ClusterMetaData{
+			Id:      cluster.config.Id,
+			Status:  "error",
+			Message: msg,
+		}
+	}
+
 	var totalClusterSize int64
 
 	brokerCount := 0
@@ -129,6 +165,11 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	topicCount := 0
 	if metadata.Topics != nil {
 		topicCount = len(metadata.Topics)
+	}
+
+	consumerGroupCount := 0
+	if consumerGroups != nil {
+		consumerGroupCount = len(consumerGroups.Groups())
 	}
 
 	for _, brokerLogDirs := range logDirs {
@@ -151,12 +192,13 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	}
 
 	return ClusterMetaData{
-		Id:          cluster.config.Id,
-		Status:      status,
-		Message:     message,
-		BrokerCount: brokerCount,
-		TopicCount:  topicCount,
-		TotalSize:   totalClusterSize,
+		Id:                 cluster.config.Id,
+		Status:             status,
+		Message:            message,
+		BrokerCount:        brokerCount,
+		TopicCount:         topicCount,
+		ConsumerGroupCount: consumerGroupCount,
+		TotalSize:          totalClusterSize,
 	}
 }
 
@@ -196,10 +238,10 @@ type GetClusterByIdResponse struct {
 	Metadata ClusterMetaData      `json:"metadata"`
 	Brokers  []kadm.BrokerDetails `json:"brokers"`
 	Topics   []kadm.TopicDetails  `json:"topics"`
+	Groups   kadm.ListedGroups    `json:"groups"`
 }
 
 func GetClusterById(ctx context.Context, id string, clients map[string]KafkaCluster) (GetClusterByIdResponse, error) {
-
 	cluster, exists := clients[id]
 	if !exists {
 		return GetClusterByIdResponse{}, fmt.Errorf("cluster '%s' not found", id)
@@ -210,10 +252,11 @@ func GetClusterById(ctx context.Context, id string, clients map[string]KafkaClus
 		return GetClusterByIdResponse{}, fmt.Errorf("error retrieving metadata: %s", metadata.Message)
 	}
 
-	cluster.adminClient.ListGroups(ctx)
+	groups, _ := cluster.adminClient.ListGroups(ctx)
 
 	return GetClusterByIdResponse{
 		Metadata: metadata,
+		Groups:   groups,
 	}, nil
 }
 

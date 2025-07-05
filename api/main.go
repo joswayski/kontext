@@ -24,23 +24,14 @@ func startServer(srv *http.Server, cfg *config.KontextConfig) {
 	}
 }
 
-func startProducers(kafkaClients map[string]kafka.KafkaCluster) {
-	slog.Info("Starting producers")
-	if len(kafkaClients) == 0 {
-		slog.Warn("No Kafka clients configured - producers shutting down.")
-		return
-	}
-
-	kafka.SeedTopics(context.Background(), kafkaClients)
-
-}
-
-func starConsumers(kafkaClients map[string]kafka.KafkaCluster) {
+func startConsumers(kafkaClients map[string]kafka.KafkaCluster) {
 	slog.Info("Starting consumers")
 	if len(kafkaClients) == 0 {
 		slog.Warn("No Kafka clients configured - consumers shutting down.")
 		return
 	}
+
+	// for _, cluster := range kafkaClients {}
 }
 
 func waitForShutdown(srv *http.Server) {
@@ -82,7 +73,7 @@ func main() {
 	topicWg.Wait()
 
 	go kafka.SeedTopics(ctx, kafkaClients)
-	go starConsumers(kafkaClients) // TODO temporary
+	go startConsumers(kafkaClients) // TODO temporary
 	go startServer(srv, cfg)
 
 	waitForShutdown(srv)
