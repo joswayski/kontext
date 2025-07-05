@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"sort"
 	"sync"
 
 	cfg "github.com/joswayski/kontext/api/config"
@@ -16,9 +17,9 @@ type ClusterMetaData struct {
 	Id          string `json:"id"`
 	Status      string `json:"status"`
 	Message     string `json:"message"`
-	BrokerCount int    `json:"broker_count,omitempty"`
-	TopicCount  int    `json:"topic_count,omitempty"`
-	TotalSize   int64  `json:"total_size,omitempty"`
+	BrokerCount int    `json:"broker_count"`
+	TopicCount  int    `json:"topic_count"`
+	TotalSize   int64  `json:"total_size"`
 }
 
 func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
@@ -180,6 +181,11 @@ func GetMetadataForAllClusters(ctx context.Context, clients map[string]KafkaClus
 		results.Clusters = append(results.Clusters, cmd)
 	}
 
+	// Sort clusters alphabetically
+	sort.Slice(results.Clusters, func(i, j int) bool {
+		return results.Clusters[i].Id < results.Clusters[j].Id
+	})
+
 	results.ClusterCount = len(results.Clusters)
 	return results
 }
@@ -202,7 +208,27 @@ func GetClusterById(ctx context.Context, id string, clients map[string]KafkaClus
 		return GetClusterByIdResponse{}, fmt.Errorf("error retrieving metadata: %s", metadata.Message)
 	}
 
+	// Get brokers
+
+	cluster.adminClient.ListGroups(ctx)
+
+	// Get topics
+
 	return GetClusterByIdResponse{
 		Metadata: metadata,
 	}, nil
+}
+
+var topics = []string{"orders", "users"}
+
+func CreateTopics(ctx context.Context, clients map[string]KafkaCluster) {
+	slog.Info("Creating topics...")
+	for _, cluster := range clients {
+		_, err := cluster.adminClient.CreateTopics(ctx, 1, 1, nil, topics...)
+		if err != nil {
+			slog.Warn("Unable to create topics")
+			continue
+		}
+		slog.Info(fmt.Sprintf("Topics created in %s cluster", cluster.config.Id))
+	}
 }
