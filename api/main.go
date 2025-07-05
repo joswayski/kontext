@@ -31,10 +31,8 @@ func startProducers(kafkaClients map[string]kafka.KafkaCluster) {
 		return
 	}
 
-	for _, cluster := range kafkaClients {
-		
+	kafka.SeedTopics(context.Background(), kafkaClients)
 
-	}
 }
 
 func starConsumers(kafkaClients map[string]kafka.KafkaCluster) {

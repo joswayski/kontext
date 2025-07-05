@@ -2,12 +2,14 @@ package clients
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
 	"sort"
 	"sync"
 
+	"github.com/brianvoe/gofakeit/v7"
 	cfg "github.com/joswayski/kontext/api/config"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -230,5 +232,46 @@ func CreateTopics(ctx context.Context, clients map[string]KafkaCluster) {
 			continue
 		}
 		slog.Info(fmt.Sprintf("Topics created in %s cluster", cluster.config.Id))
+	}
+}
+
+type SampleMessage struct {
+	MessageType string      `json:"message_type"`
+	Data        interface{} `json:"data"`
+}
+
+func SeedTopics(ctx context.Context, clients map[string]KafkaCluster) {
+	slog.Info("Seeding topics...")
+
+	for _, topic := range topics {
+		for _, cluster := range clients {
+			// Create sample message
+			sampleMsg := SampleMessage{
+				MessageType: gofakeit.Word(),
+				Data: map[string]string{
+					"name": gofakeit.Name(),
+				},
+			}
+
+			// Convert to JSON bytes
+			jsonData, err := json.Marshal(sampleMsg)
+			if err != nil {
+				slog.Error("Failed to marshal message", "error", err)
+				continue
+			}
+
+			// Produce message to topic
+			cluster.client.Produce(ctx, &kgo.Record{
+				Topic: topic,
+				Key:   []byte(gofakeit.UUID()),
+				Value: jsonData,
+			}, func(r *kgo.Record, err error) {
+				if err != nil {
+					slog.Error("Failed to produce message", "error", err, "topic", topic)
+				} else {
+					slog.Info("Message produced successfully", "topic", topic)
+				}
+			})
+		}
 	}
 }
