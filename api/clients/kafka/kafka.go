@@ -44,24 +44,17 @@ func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) 
 	)
 
 	if kafkaConfig.Id == "production" {
-		// adm := kadm.NewClient(cl)
-		// tcfg, _ := adm.DescribeGroups(context.Background(), groupId)
-
 		cc := cl.GetConsumeTopics()
 		slog.Info(fmt.Sprintf("topic configs %s", cc))
 
 		go func() {
-
 			for {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 				slog.Info("Polling kafka prod")
 				cl.PollFetches(ctx)
-
 				cancel()
-
 			}
-
 		}()
 	}
 
@@ -364,10 +357,12 @@ func getConsumerGroupsInCluster(ctx context.Context, cluster KafkaCluster) (AllC
 	return allConsumerGroups, nil
 }
 
+// TODO - temporary - will cleanup in a separate PR
 var topics = []string{"orders", "users"}
 
-// TODO check if it exists first
+// TODO - temporary - will cleanup in a separate PR
 func CreateTopics(ctx context.Context, clients AllKafkaClusters) {
+	// TODO check if topic exists first
 	slog.Info("Creating topics...")
 	for _, cluster := range clients {
 		_, err := cluster.adminClient.CreateTopics(ctx, 1, 1, nil, topics...)
@@ -379,13 +374,13 @@ func CreateTopics(ctx context.Context, clients AllKafkaClusters) {
 	}
 }
 
-// TODO temporary will cleanup in next PR
+// TODO - temporary - will cleanup in a separate PR
 type SampleMessage struct {
 	MessageType string      `json:"message_type"`
 	Data        interface{} `json:"data"`
 }
 
-// TODO temporary will cleanup in next PR
+// TODO - temporary - will cleanup in a separate PR
 func SeedTopics(ctx context.Context, clients AllKafkaClusters) {
 	slog.Info("Seeding topics...")
 
