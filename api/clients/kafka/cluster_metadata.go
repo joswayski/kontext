@@ -3,7 +3,6 @@ package clients
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"sort"
 	"sync"
 
@@ -60,13 +59,11 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	}()
 	wg.Wait()
 
-	status := MetadataStatusConnected
-
 	if metaErr != nil {
 		msg := fmt.Sprintf("Unable to retrieve metadata: %s. Please check if the cluster is running.", metaErr.Error())
 		return ClusterMetaData{
 			Id:      cluster.config.Id,
-			Status:  "error",
+			Status:  MetadataStatusError,
 			Message: msg,
 		}
 	}
@@ -75,7 +72,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		msg := fmt.Sprintf("Unable to retrieve describe log dirs: %s.", logDirsErr.Error())
 		return ClusterMetaData{
 			Id:      cluster.config.Id,
-			Status:  "error",
+			Status:  MetadataStatusError,
 			Message: msg,
 		}
 	}
@@ -84,7 +81,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		msg := fmt.Sprintf("Unable to retrieve consumer groups: %s.", consumerGroupsError.Error())
 		return ClusterMetaData{
 			Id:      cluster.config.Id,
-			Status:  "error",
+			Status:  MetadataStatusError,
 			Message: msg,
 		}
 	}
@@ -98,16 +95,13 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	topicCount := 0
 	if metadata.Topics != nil {
-		slog.Info(fmt.Sprintf("Cluster %s - All topics:", cluster.config.Id))
 		for _, topic := range metadata.Topics {
-			slog.Info(fmt.Sprintf("  Topic: %s, Internal: %t", topic.Topic, topic.IsInternal))
 			if !topic.IsInternal {
 				// In the future I might revisit this but for now,
 				// I only actually care about the 'main' topics
 				topicCount += 1
 			}
 		}
-		slog.Info(fmt.Sprintf("Cluster %s - Non-internal topic count: %d", cluster.config.Id, topicCount))
 	}
 
 	consumerGroupCount := 0
@@ -120,7 +114,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 			msg := fmt.Sprintf("Error retrieving log directories for brokers%s: %s", cluster.config.Id, brokerLogDirs.Error())
 			return ClusterMetaData{
 				Id:      cluster.config.Id,
-				Status:  "error",
+				Status:  MetadataStatusError,
 				Message: msg,
 			}
 		}
@@ -136,7 +130,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	return ClusterMetaData{
 		Id:                 cluster.config.Id,
-		Status:             MetadataStatus(status),
+		Status:             MetadataStatusConnected,
 		BrokerCount:        brokerCount,
 		TopicCount:         topicCount,
 		ConsumerGroupCount: consumerGroupCount,
