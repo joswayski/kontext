@@ -72,10 +72,10 @@ func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 		if err != nil {
 			log.Fatalf("Unable to create Kafka client for %s cluster: %s", clusterId, err)
 		}
-		slog.Info(fmt.Sprintf("Created normal client for %s cluster", clusterId))
 
 		adminClient := kadm.NewClient(normalClient)
-		slog.Info(fmt.Sprintf("Created admin client for %s cluster", clusterId))
+
+		slog.Info(fmt.Sprintf("Created clients for %s cluster", clusterId))
 
 		allClusters[clusterId] = KafkaCluster{
 			client:      normalClient,
