@@ -63,15 +63,6 @@ func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) 
 	return cl, nil
 }
 
-// Creates an admin client for the cluster to retrieve metadata
-func newAdminKafkaClient(kgoClient *kgo.Client) *kadm.Client {
-	acl := kadm.NewClient(
-		kgoClient,
-	)
-
-	return acl
-}
-
 // Returns the normal client, admin client, and configs for all clusters
 func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 	allClusters := make(AllKafkaClusters)
@@ -83,7 +74,7 @@ func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 		}
 		slog.Info(fmt.Sprintf("Created client for %s cluster", clusterId))
 
-		adminClient := newAdminKafkaClient(normalClient)
+		adminClient := kadm.NewClient(normalClient)
 		slog.Info(fmt.Sprintf("Created admin client for %s cluster", clusterId))
 
 		allClusters[clusterId] = KafkaCluster{
