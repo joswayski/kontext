@@ -267,7 +267,7 @@ func GetMetadataForAllClusters(ctx context.Context, clients AllKafkaClusters) Ge
 
 type GetClusterByIdResponse struct {
 	Metadata       ClusterMetaData            `json:"metadata"`
-	Brokers        []kadm.BrokerDetails       `json:"brokers"`
+	Brokers        []string                   `json:"brokers"`
 	Topics         []kadm.TopicDetails        `json:"topics"`
 	ConsumerGroups AllConsumerGroupsInCluster `json:"consumer_groups"`
 }
@@ -287,14 +287,25 @@ func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (G
 	if err != nil {
 		return GetClusterByIdResponse{}, fmt.Errorf("could not describe groups: %w", err)
 	}
+
 	return GetClusterByIdResponse{
 		Metadata:       metadata,
 		ConsumerGroups: consumerGroups,
+		Brokers:        cluster.config.BrokerURLs,
 	}, nil
 }
 
 type ConsumerGroupInCluster struct {
-	Name         string `json:"name"`
+	Name string `json:"name"`
+	/*
+	 * Kafka Consumer Group States:
+	 * - "Empty": No members in the group
+	 * - "PreparingRebalance": Group is preparing to rebalance (members joining/leaving)
+	 * - "CompletingRebalance": Group is completing rebalance process
+	 * - "Stable": Group is stable with all members assigned partitions
+	 * - "Dead": Group has no members and no offsets
+	 * - "Unknown": State cannot be determined
+	 */
 	State        string `json:"state"`
 	MembersCount int    `json:"members_count"`
 }
