@@ -8,19 +8,33 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/joswayski/kontext/api/types"
 )
 
-func GetConfig() *types.KontextConfig {
+// The config for a cluster including the broker URLs and the ID
+type KafkaClusterConfig struct {
+	BrokerURLs []string
+	// Id of the cluster, taken from the broker URL(s), lowercased
+	Id string
+}
 
+// All configs for all clusters
+type AllKafkaClusterConfigs map[string]KafkaClusterConfig
+
+// Global, app wide config
+type KontextConfig struct {
+	Port                string
+	KafkaClusterConfigs AllKafkaClusterConfigs
+}
+
+func GetConfig() *KontextConfig {
 	err := godotenv.Load("../.env")
 	if err != nil {
 		slog.Warn(fmt.Sprintf("Failed to load .env file from root: %v", err))
 	}
 
-	return &types.KontextConfig{
+	return &KontextConfig{
 		Port:                getPort(),
-		KafkaClusterConfigs: getKafkaClusterConfigs(),
+		KafkaClusterConfigs: getAllKafkaClusterConfigs(),
 	}
 }
 
@@ -41,8 +55,8 @@ func getPort() string {
 const brokerUrlPrefix = "KAFKA_"
 const brokerUrlSuffix = "_BROKER_URL"
 
-func getKafkaClusterConfigs() types.AllKafkaClusterConfigs {
-	clusters := make(types.AllKafkaClusterConfigs)
+func getAllKafkaClusterConfigs() AllKafkaClusterConfigs {
+	clusters := make(AllKafkaClusterConfigs)
 	envs := os.Environ()
 
 	for _, env := range envs {
@@ -64,7 +78,7 @@ func getKafkaClusterConfigs() types.AllKafkaClusterConfigs {
 				slog.Warn(fmt.Sprintf("A Kafka broker key was set (%s), but no URLs were provided", key))
 				continue
 			}
-			clusters[clusterId] = types.KafkaClusterConfig{
+			clusters[clusterId] = KafkaClusterConfig{
 				Id:         clusterId,
 				BrokerURLs: strings.Split(value, ","),
 			}

@@ -11,11 +11,11 @@ import (
 	"time"
 
 	kafka "github.com/joswayski/kontext/api/clients/kafka"
-	"github.com/joswayski/kontext/api/config"
+	config "github.com/joswayski/kontext/api/config"
 	"github.com/joswayski/kontext/api/routes"
 )
 
-func startServer(srv *http.Server, cfg *config.KontextConfig) {
+func startServer(srv *http.Server, cfg config.KontextConfig) {
 	slog.Info("Starting API server on port " + cfg.Port)
 	err := srv.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
@@ -53,9 +53,9 @@ func waitForShutdown(srv *http.Server) {
 
 func main() {
 	cfg := config.GetConfig()
-	kafkaClients := kafka.getKafkaClusterConfigsFromConfig(*cfg)
+	kafkaClusters := kafka.GetKafkaClustersFromConfig(*cfg)
 
-	r := routes.GetRoutes(kafkaClients)
+	r := routes.GetRoutes(kafkaClusters)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
@@ -68,13 +68,13 @@ func main() {
 	topicWg.Add(1)
 	go func() {
 		defer topicWg.Done()
-		kafka.CreateTopics(ctx, kafkaClients)
+		kafka.CreateTopics(ctx, kafkaClusters)
 	}()
 	topicWg.Wait()
 
-	go kafka.SeedTopics(ctx, kafkaClients)
-	go startConsumers(kafkaClients) // TODO temporary
-	go startServer(srv, cfg)
+	go kafka.SeedTopics(ctx, kafkaClusters)
+	go startConsumers(kafkaClusters) // TODO temporary
+	go startServer(srv, *cfg)
 
 	waitForShutdown(srv)
 }

@@ -11,12 +11,22 @@ import (
 	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
-	"github.com/joswayski/kontext/api/types"
+	config "github.com/joswayski/kontext/api/config"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-func newKafkaClient(kafkaConfig types.KafkaClusterConfig) (*kgo.Client, error) {
+// The client, admin client, and config for a cluster
+type KafkaCluster struct {
+	client      *kgo.Client
+	adminClient *kadm.Client
+	config      config.KafkaClusterConfig
+}
+
+// All clusters with their client, admin client, and config
+type AllKafkaClusters map[string]KafkaCluster
+
+func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) {
 	groupId := fmt.Sprintf("kontext-%s-consumer", kafkaConfig.Id)
 	cl, err := kgo.NewClient(
 		kgo.SeedBrokers(kafkaConfig.BrokerURLs...),
@@ -63,7 +73,7 @@ func newAdminKafkaClient(kgoClient *kgo.Client) *kadm.Client {
 }
 
 // Returns the normal client, admin client, and configs for all clusters
-func getKafkaClusterConfigsFromConfig(cfg types.KontextConfig) AllKafkaClusters {
+func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 	allClusters := make(AllKafkaClusters)
 
 	for clusterId, clusterConfig := range cfg.KafkaClusterConfigs {
