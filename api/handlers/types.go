@@ -6,6 +6,6 @@ import (
 )
 
 type Handler struct {
-	KafkaClusters map[string]kafka.KafkaCluster
+	KafkaClusters kafka.AllKafkaClusters
 	Routes        []utils.Route
 }

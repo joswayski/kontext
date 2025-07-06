@@ -11,22 +11,12 @@ import (
 	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
-	cfg "github.com/joswayski/kontext/api/config"
+	"github.com/joswayski/kontext/api/types"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-type ClusterMetaData struct {
-	Id                 string `json:"id"`
-	Status             string `json:"status"`
-	Message            string `json:"message"`
-	BrokerCount        int    `json:"broker_count"`
-	TopicCount         int    `json:"topic_count"`
-	ConsumerGroupCount int    `json:"consumer_group_count"`
-	TotalSize          int64  `json:"total_size"`
-}
-
-func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
+func newKafkaClient(kafkaConfig types.KafkaClusterConfig) (*kgo.Client, error) {
 	groupId := fmt.Sprintf("kontext-%s-consumer", kafkaConfig.Id)
 	cl, err := kgo.NewClient(
 		kgo.SeedBrokers(kafkaConfig.BrokerURLs...),
@@ -60,6 +50,7 @@ func newKafkaClient(kafkaConfig cfg.KafkaClusterConfig) (*kgo.Client, error) {
 		slog.Error(fmt.Sprintf("Could not get Kafka client for %s cluster. Error: %s", kafkaConfig.Id, err))
 		return nil, err
 	}
+
 	return cl, nil
 }
 
@@ -71,17 +62,11 @@ func newAdminKafkaClient(kgoClient *kgo.Client) *kadm.Client {
 	return acl
 }
 
-type KafkaCluster struct {
-	client      *kgo.Client
-	adminClient *kadm.Client
-	config      cfg.KafkaClusterConfig
-}
-
 // Returns the normal client, admin client, and configs for all clusters
-func GetKafkaClustersFromConfig(cfg cfg.KontextConfig) map[string]KafkaCluster {
-	allClusters := make(map[string]KafkaCluster)
+func getKafkaClusterConfigsFromConfig(cfg types.KontextConfig) AllKafkaClusters {
+	allClusters := make(AllKafkaClusters)
 
-	for clusterId, clusterConfig := range cfg.KafkaClusters {
+	for clusterId, clusterConfig := range cfg.KafkaClusterConfigs {
 		normalClient, err := newKafkaClient(clusterConfig)
 		if err != nil {
 			log.Fatalf("Unable to create Kafka client for %s cluster: %s", clusterId, err)
@@ -99,6 +84,16 @@ func GetKafkaClustersFromConfig(cfg cfg.KontextConfig) map[string]KafkaCluster {
 	}
 
 	return allClusters
+}
+
+type ClusterMetaData struct {
+	Id                 string `json:"id"`
+	Status             string `json:"status"`
+	Message            string `json:"message"`
+	BrokerCount        int    `json:"broker_count"`
+	TopicCount         int    `json:"topic_count"`
+	ConsumerGroupCount int    `json:"consumer_group_count"`
+	TotalSize          int64  `json:"total_size"`
 }
 
 type GetMetadataForAllClustersResponse struct {
@@ -210,7 +205,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	}
 }
 
-func GetMetadataForAllClusters(ctx context.Context, clients map[string]KafkaCluster) GetMetadataForAllClustersResponse {
+func GetMetadataForAllClusters(ctx context.Context, clients AllKafkaClusters) GetMetadataForAllClustersResponse {
 	results := GetMetadataForAllClustersResponse{
 		Clusters: make([]ClusterMetaData, 0),
 	}
@@ -249,7 +244,7 @@ type GetClusterByIdResponse struct {
 	Groups   kadm.DescribedGroups `json:"groups"`
 }
 
-func GetClusterById(ctx context.Context, id string, clients map[string]KafkaCluster) (GetClusterByIdResponse, error) {
+func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (GetClusterByIdResponse, error) {
 	cluster, exists := clients[id]
 	if !exists {
 		return GetClusterByIdResponse{}, fmt.Errorf("cluster '%s' not found", id)
@@ -280,7 +275,7 @@ func GetClusterById(ctx context.Context, id string, clients map[string]KafkaClus
 
 var topics = []string{"orders", "users"}
 
-func CreateTopics(ctx context.Context, clients map[string]KafkaCluster) {
+func CreateTopics(ctx context.Context, clients AllKafkaClusters) {
 	slog.Info("Creating topics...")
 	for _, cluster := range clients {
 		_, err := cluster.adminClient.CreateTopics(ctx, 1, 1, nil, topics...)
@@ -299,7 +294,7 @@ type SampleMessage struct {
 }
 
 // TODO temporary will cleanup in next PR
-func SeedTopics(ctx context.Context, clients map[string]KafkaCluster) {
+func SeedTopics(ctx context.Context, clients AllKafkaClusters) {
 	slog.Info("Seeding topics...")
 
 	for _, topic := range topics {

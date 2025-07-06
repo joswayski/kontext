@@ -24,10 +24,10 @@ func startServer(srv *http.Server, cfg *config.KontextConfig) {
 	}
 }
 
-func startConsumers(kafkaClients map[string]kafka.KafkaCluster) {
+func startConsumers(allClusters kafka.AllKafkaClusters) {
 	slog.Info("Starting consumers")
-	if len(kafkaClients) == 0 {
-		slog.Warn("No Kafka clients configured - consumers shutting down.")
+	if len(allClusters) == 0 {
+		slog.Warn("No Kafka clusters configured - consumers shutting down.")
 		return
 	}
 
@@ -53,7 +53,7 @@ func waitForShutdown(srv *http.Server) {
 
 func main() {
 	cfg := config.GetConfig()
-	kafkaClients := kafka.GetKafkaClustersFromConfig(*cfg)
+	kafkaClients := kafka.getKafkaClusterConfigsFromConfig(*cfg)
 
 	r := routes.GetRoutes(kafkaClients)
 

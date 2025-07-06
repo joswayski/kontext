@@ -7,7 +7,7 @@ import (
 	"github.com/joswayski/kontext/api/utils"
 )
 
-func GetRoutes(kafkaClusters map[string]clients.KafkaCluster) *gin.Engine {
+func GetRoutes(kafkaClusters clients.AllKafkaClusters) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(gin.Logger())
