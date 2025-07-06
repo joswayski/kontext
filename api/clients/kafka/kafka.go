@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
 	config "github.com/joswayski/kontext/api/config"
@@ -35,6 +34,8 @@ func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) 
 		kgo.ConsumeTopics(topics...),
 	)
 
+	// For debugging / testing 2 consumer groups
+	// TODO - temporary
 	groupId2 := fmt.Sprintf("kontext-%s-consumer-2", kafkaConfig.Id)
 	kgo.NewClient(
 		kgo.SeedBrokers(kafkaConfig.BrokerURLs...),
@@ -43,20 +44,20 @@ func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) 
 		kgo.ConsumeTopics(topics...),
 	)
 
-	if kafkaConfig.Id == "production" {
-		cc := cl.GetConsumeTopics()
-		slog.Info(fmt.Sprintf("topic configs %s", cc))
+	// if kafkaConfig.Id == "production" {
+	// 	cc := cl.GetConsumeTopics()
+	// 	slog.Info(fmt.Sprintf("topic configs %s", cc))
 
-		go func() {
-			for {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	// 	go func() {
+	// 		for {
+	// 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
-				slog.Info("Polling kafka prod")
-				cl.PollFetches(ctx)
-				cancel()
-			}
-		}()
-	}
+	// 			slog.Info("Polling kafka prod")
+	// 			cl.PollFetches(ctx)
+	// 			cancel()
+	// 		}
+	// 	}()
+	// }
 
 	if err != nil {
 		slog.Error(fmt.Sprintf("Could not get Kafka client for %s cluster. Error: %s", kafkaConfig.Id, err))
