@@ -43,14 +43,12 @@ func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) 
 	)
 
 	if kafkaConfig.Id == "production" {
-		cc := cl.GetConsumeTopics()
-		slog.Info(fmt.Sprintf("topic configs %s", cc))
-
+		// TODO - temporary
 		go func() {
 			for {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 
-				slog.Info("Polling kafka prod")
+				slog.Info(fmt.Sprintf("Polling kafka prod %s", time.Now()))
 				cl.PollFetches(ctx)
 				cancel()
 			}
