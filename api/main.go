@@ -72,8 +72,8 @@ func main() {
 	}()
 	topicWg.Wait()
 
-	go kafka.SeedTopics(ctx, kafkaClusters)
-	go startConsumers(kafkaClusters) // TODO temporary
+	// go kafka.SeedTopics(ctx, kafkaClusters)
+	// go startConsumers(kafkaClusters) // TODO temporary
 	go startServer(srv, *cfg)
 
 	waitForShutdown(srv)

@@ -31,6 +31,15 @@ func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) 
 	cl, err := kgo.NewClient(
 		kgo.SeedBrokers(kafkaConfig.BrokerURLs...),
 		kgo.ConsumerGroup(groupId),
+		kgo.ClientID(groupId),
+		kgo.ConsumeTopics(topics...),
+	)
+
+	groupId2 := fmt.Sprintf("kontext-%s-consumer-2", kafkaConfig.Id)
+	kgo.NewClient(
+		kgo.SeedBrokers(kafkaConfig.BrokerURLs...),
+		kgo.ConsumerGroup(groupId2),
+		kgo.ClientID(groupId2),
 		kgo.ConsumeTopics(topics...),
 	)
 
@@ -177,7 +186,16 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	topicCount := 0
 	if metadata.Topics != nil {
-		topicCount = len(metadata.Topics)
+		slog.Info(fmt.Sprintf("Cluster %s - All topics:", cluster.config.Id))
+		for _, topic := range metadata.Topics {
+			slog.Info(fmt.Sprintf("  Topic: %s, Internal: %t", topic.Topic, topic.IsInternal))
+			if !topic.IsInternal {
+				// In the future I might revisit this but for now,
+				// I only actually care about the 'main' topics
+				topicCount += 1
+			}
+		}
+		slog.Info(fmt.Sprintf("Cluster %s - Non-internal topic count: %d", cluster.config.Id, topicCount))
 	}
 
 	consumerGroupCount := 0
@@ -248,10 +266,10 @@ func GetMetadataForAllClusters(ctx context.Context, clients AllKafkaClusters) Ge
 }
 
 type GetClusterByIdResponse struct {
-	Metadata ClusterMetaData      `json:"metadata"`
-	Brokers  []kadm.BrokerDetails `json:"brokers"`
-	Topics   []kadm.TopicDetails  `json:"topics"`
-	Groups   kadm.DescribedGroups `json:"groups"`
+	Metadata       ClusterMetaData            `json:"metadata"`
+	Brokers        []kadm.BrokerDetails       `json:"brokers"`
+	Topics         []kadm.TopicDetails        `json:"topics"`
+	ConsumerGroups AllConsumerGroupsInCluster `json:"consumer_groups"`
 }
 
 func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (GetClusterByIdResponse, error) {
@@ -265,26 +283,52 @@ func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (G
 		return GetClusterByIdResponse{}, fmt.Errorf("error retrieving metadata: %s", metadata.Message)
 	}
 
-	// groups, _ := cluster.adminClient.ListGroups(ctx)
-
-	// Step A: Get the names of all groups in the cluster.
-	listedGroups, err := cluster.adminClient.ListGroups(ctx)
-	if err != nil {
-		return GetClusterByIdResponse{}, fmt.Errorf("could not list groups: %w", err)
-	}
-
-	describedGroups, err := cluster.adminClient.DescribeGroups(ctx, listedGroups.Groups()...)
+	consumerGroups, err := getConsumerGroupsInCluster(ctx, cluster)
 	if err != nil {
 		return GetClusterByIdResponse{}, fmt.Errorf("could not describe groups: %w", err)
 	}
 	return GetClusterByIdResponse{
-		Metadata: metadata,
-		Groups:   describedGroups,
+		Metadata:       metadata,
+		ConsumerGroups: consumerGroups,
 	}, nil
+}
+
+type ConsumerGroupInCluster struct {
+	Name         string `json:"name"`
+	State        string `json:"state"`
+	MembersCount int    `json:"members_count"`
+}
+
+type AllConsumerGroupsInCluster = []ConsumerGroupInCluster
+
+func getConsumerGroupsInCluster(ctx context.Context, cluster KafkaCluster) (AllConsumerGroupsInCluster, error) {
+	listedGroups, err := cluster.adminClient.ListGroups(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not list groups: %w", err)
+	}
+
+	describedGroups, err := cluster.adminClient.DescribeGroups(ctx, listedGroups.Groups()...)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not describe consumer groups %w", err)
+	}
+
+	allConsumerGroups := make(AllConsumerGroupsInCluster, 0)
+	for _, group := range describedGroups {
+		cg := ConsumerGroupInCluster{
+			Name:         group.Group,
+			State:        group.State,
+			MembersCount: len(group.Members),
+		}
+		allConsumerGroups = append(allConsumerGroups, cg)
+
+	}
+	return allConsumerGroups, nil
 }
 
 var topics = []string{"orders", "users"}
 
+// TODO check if it exists first
 func CreateTopics(ctx context.Context, clients AllKafkaClusters) {
 	slog.Info("Creating topics...")
 	for _, cluster := range clients {
