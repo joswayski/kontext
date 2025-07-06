@@ -3,19 +3,17 @@ package clients
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"sort"
 	"sync"
 
-	config "github.com/joswayski/kontext/api/config"
 	"github.com/twmb/franz-go/pkg/kadm"
 )
 
 type ClusterMetaData struct {
 	Id                 string `json:"id"`
 	Status             string `json:"status"`
-	Message            string `json:"message"`
+	Message            string `json:"message,omitempty"`
 	BrokerCount        int    `json:"broker_count"`
 	TopicCount         int    `json:"topic_count"`
 	ConsumerGroupCount int    `json:"consumer_group_count"`
@@ -55,7 +53,6 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	wg.Wait()
 
 	status := "connected"
-	message := "Saul Goodman"
 
 	if metaErr != nil {
 		msg := fmt.Sprintf("Unable to retrieve metadata: %s. Please check if the cluster is running.", metaErr.Error())
@@ -76,7 +73,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	}
 
 	if consumerGroupsError != nil {
-		msg := fmt.Sprintf("Unable to retrieve consumer groups: %s.", logDirsErr.Error())
+		msg := fmt.Sprintf("Unable to retrieve consumer groups: %s.", consumerGroupsError.Error())
 		return ClusterMetaData{
 			Id:      cluster.config.Id,
 			Status:  "error",
@@ -132,7 +129,6 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	return ClusterMetaData{
 		Id:                 cluster.config.Id,
 		Status:             status,
-		Message:            message,
 		BrokerCount:        brokerCount,
 		TopicCount:         topicCount,
 		ConsumerGroupCount: consumerGroupCount,
@@ -170,61 +166,4 @@ func GetMetadataForAllClusters(ctx context.Context, clients AllKafkaClusters) Ge
 
 	results.ClusterCount = len(results.Clusters)
 	return results
-}
-
-type GetClusterByIdResponse struct {
-	Metadata       ClusterMetaData            `json:"metadata"`
-	Brokers        []string                   `json:"brokers"` // URLs for all brokers
-	Topics         AllTopicsInCluster         `json:"topics"`
-	ConsumerGroups AllConsumerGroupsInCluster `json:"consumer_groups"`
-}
-
-func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (GetClusterByIdResponse, error) {
-	cluster, exists := clients[id]
-	if !exists {
-		return GetClusterByIdResponse{}, fmt.Errorf("cluster '%s' not found", id)
-	}
-
-	metadata := getMetadataForCluster(ctx, cluster)
-	if metadata.Status == "error" {
-		return GetClusterByIdResponse{}, fmt.Errorf("error retrieving metadata: %s", metadata.Message)
-	}
-
-	consumerGroups, err := getConsumerGroupsInCluster(ctx, cluster)
-	if err != nil {
-		return GetClusterByIdResponse{}, fmt.Errorf("could not describe groups: %w", err)
-	}
-
-	topics, _ := getTopicsInCluster(ctx, cluster)
-
-	return GetClusterByIdResponse{
-		Metadata:       metadata,
-		ConsumerGroups: consumerGroups,
-		Brokers:        cluster.config.BrokerURLs,
-		Topics:         topics,
-	}, nil
-}
-
-// Returns the normal client, admin client, and configs for all clusters
-func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
-	allClusters := make(AllKafkaClusters)
-
-	for clusterId, clusterConfig := range cfg.KafkaClusterConfigs {
-		normalClient, err := newKafkaClient(clusterConfig)
-		if err != nil {
-			log.Fatalf("Unable to create Kafka client for %s cluster: %s", clusterId, err)
-		}
-		slog.Info(fmt.Sprintf("Created client for %s cluster", clusterId))
-
-		adminClient := newAdminKafkaClient(normalClient)
-		slog.Info(fmt.Sprintf("Created admin client for %s cluster", clusterId))
-
-		allClusters[clusterId] = KafkaCluster{
-			client:      normalClient,
-			adminClient: adminClient,
-			config:      clusterConfig,
-		}
-	}
-
-	return allClusters
 }

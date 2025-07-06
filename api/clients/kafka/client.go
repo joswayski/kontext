@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"time"
 
@@ -21,6 +22,7 @@ type KafkaCluster struct {
 // All clusters with their client, admin client, and config
 type AllKafkaClusters map[string]KafkaCluster
 
+// Creates a normal kafka client
 func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) {
 	groupId := fmt.Sprintf("kontext-%s-consumer", kafkaConfig.Id)
 	cl, err := kgo.NewClient(
@@ -63,10 +65,35 @@ func newKafkaClient(kafkaConfig config.KafkaClusterConfig) (*kgo.Client, error) 
 	return cl, nil
 }
 
+// Creates an admin client for the cluster to retrieve metadata
 func newAdminKafkaClient(kgoClient *kgo.Client) *kadm.Client {
 	acl := kadm.NewClient(
 		kgoClient,
 	)
 
 	return acl
+}
+
+// Returns the normal client, admin client, and configs for all clusters
+func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
+	allClusters := make(AllKafkaClusters)
+
+	for clusterId, clusterConfig := range cfg.KafkaClusterConfigs {
+		normalClient, err := newKafkaClient(clusterConfig)
+		if err != nil {
+			log.Fatalf("Unable to create Kafka client for %s cluster: %s", clusterId, err)
+		}
+		slog.Info(fmt.Sprintf("Created client for %s cluster", clusterId))
+
+		adminClient := newAdminKafkaClient(normalClient)
+		slog.Info(fmt.Sprintf("Created admin client for %s cluster", clusterId))
+
+		allClusters[clusterId] = KafkaCluster{
+			client:      normalClient,
+			adminClient: adminClient,
+			config:      clusterConfig,
+		}
+	}
+
+	return allClusters
 }
