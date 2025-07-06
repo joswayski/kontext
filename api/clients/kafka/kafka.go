@@ -267,8 +267,8 @@ func GetMetadataForAllClusters(ctx context.Context, clients AllKafkaClusters) Ge
 
 type GetClusterByIdResponse struct {
 	Metadata       ClusterMetaData            `json:"metadata"`
-	Brokers        []string                   `json:"brokers"`
-	Topics         []kadm.TopicDetails        `json:"topics"`
+	Brokers        []string                   `json:"brokers"` // URLs for all brokers
+	Topics         kadm.TopicDetails          `json:"topics"`
 	ConsumerGroups AllConsumerGroupsInCluster `json:"consumer_groups"`
 }
 
@@ -288,11 +288,19 @@ func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (G
 		return GetClusterByIdResponse{}, fmt.Errorf("could not describe groups: %w", err)
 	}
 
+	// topics, err := getTopicsInCluster(ctx, cluster)
+	topics, _ := cluster.adminClient.ListTopics(ctx)
+
 	return GetClusterByIdResponse{
 		Metadata:       metadata,
 		ConsumerGroups: consumerGroups,
 		Brokers:        cluster.config.BrokerURLs,
+		Topics:         topics,
 	}, nil
+}
+
+func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) {
+
 }
 
 type ConsumerGroupInCluster struct {
