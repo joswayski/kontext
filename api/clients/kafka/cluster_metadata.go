@@ -10,15 +10,23 @@ import (
 	"github.com/twmb/franz-go/pkg/kadm"
 )
 
+type MetadataStatus string
+
 type ClusterMetaData struct {
-	Id                 string `json:"id"`
-	Status             string `json:"status"`
+	Id     string         `json:"id"`
+	Status MetadataStatus `json:"status"`
+	// Only shows if there is an error (status === "error")
 	Message            string `json:"message,omitempty"`
 	BrokerCount        int    `json:"broker_count"`
 	TopicCount         int    `json:"topic_count"`
 	ConsumerGroupCount int    `json:"consumer_group_count"`
 	TotalSize          int64  `json:"total_size"`
 }
+
+const (
+	MetadataStatusConnected = "connected"
+	MetadataStatusError     = "error"
+)
 
 type GetMetadataForAllClustersResponse struct {
 	Clusters     []ClusterMetaData `json:"clusters"`
@@ -52,7 +60,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	}()
 	wg.Wait()
 
-	status := "connected"
+	status := MetadataStatusConnected
 
 	if metaErr != nil {
 		msg := fmt.Sprintf("Unable to retrieve metadata: %s. Please check if the cluster is running.", metaErr.Error())
@@ -128,7 +136,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	return ClusterMetaData{
 		Id:                 cluster.config.Id,
-		Status:             status,
+		Status:             MetadataStatus(status),
 		BrokerCount:        brokerCount,
 		TopicCount:         topicCount,
 		ConsumerGroupCount: consumerGroupCount,
