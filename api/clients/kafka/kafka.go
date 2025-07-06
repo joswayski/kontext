@@ -268,7 +268,7 @@ func GetMetadataForAllClusters(ctx context.Context, clients AllKafkaClusters) Ge
 type GetClusterByIdResponse struct {
 	Metadata       ClusterMetaData            `json:"metadata"`
 	Brokers        []string                   `json:"brokers"` // URLs for all brokers
-	Topics         kadm.TopicDetails          `json:"topics"`
+	Topics         AllTopicsInCluster         `json:"topics"`
 	ConsumerGroups AllConsumerGroupsInCluster `json:"consumer_groups"`
 }
 
@@ -288,8 +288,7 @@ func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (G
 		return GetClusterByIdResponse{}, fmt.Errorf("could not describe groups: %w", err)
 	}
 
-	// topics, err := getTopicsInCluster(ctx, cluster)
-	topics, _ := cluster.adminClient.ListTopics(ctx)
+	topics, _ := getTopicsInCluster(ctx, cluster)
 
 	return GetClusterByIdResponse{
 		Metadata:       metadata,
@@ -299,7 +298,27 @@ func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (G
 	}, nil
 }
 
-func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) {
+type TopicsInCluster struct {
+	Name            string `json:"name"`
+	PartitionsCount int    `json:"partitions_count"`
+}
+
+type AllTopicsInCluster = []TopicsInCluster
+
+func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInCluster, error) {
+	topics, err := cluster.adminClient.ListTopics(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve toics in cluster %s", err.Error())
+	}
+
+	allTopics := make(AllTopicsInCluster, 0)
+	for _, topic := range topics {
+		allTopics = append(allTopics, TopicsInCluster{
+			Name:            topic.Topic,
+			PartitionsCount: int(len(topic.Partitions)),
+		})
+	}
+	return allTopics, nil
 
 }
 
