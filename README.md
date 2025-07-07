@@ -4,8 +4,8 @@ A tool to automatically visualize the event flows in your Kafka clusters and giv
 
 Nobody likes keeping diagrams or Markdown in sync anyway.
 
+⚠️ *This project is in the early stages of development* ⚠️
 
-> Note: This project is in the early stages of development
 
 ## Getting Started
 
