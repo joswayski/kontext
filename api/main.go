@@ -15,6 +15,12 @@ import (
 	"github.com/joswayski/kontext/api/routes"
 )
 
+func cleanupResources(kafkaClusters kafka.AllKafkaClusters) {
+	slog.Info("Starting to clean up resources...")
+	kafkaClusters.Close()
+	slog.Info("Done cleaning up resources!")
+}
+
 func startServer(srv *http.Server, cfg config.KontextConfig) {
 	slog.Info("Starting API server on port " + cfg.Port)
 	err := srv.ListenAndServe()
@@ -33,7 +39,7 @@ func startServer(srv *http.Server, cfg config.KontextConfig) {
 // 	}
 // }
 
-func waitForShutdown(srv *http.Server) {
+func awaitShutdownSignal(srv *http.Server) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -47,12 +53,13 @@ func waitForShutdown(srv *http.Server) {
 		os.Exit(1)
 	}
 
-	slog.Info("API server shutdown complete")
+	slog.Info("API server shutdown complete, cleaning up resources...")
 }
 
 func main() {
 	cfg := config.GetConfig()
 	kafkaClusters := kafka.GetKafkaClustersFromConfig(*cfg)
+	defer cleanupResources(kafkaClusters)
 
 	r := routes.GetRoutes(kafkaClusters)
 
@@ -76,5 +83,5 @@ func main() {
 	// go startConsumers(kafkaClusters)
 	go startServer(srv, *cfg)
 
-	waitForShutdown(srv)
+	awaitShutdownSignal(srv)
 }
