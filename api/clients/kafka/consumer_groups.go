@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"sync"
+
+	"github.com/twmb/franz-go/pkg/kadm"
 )
 
 type ConsumerGroupState string
@@ -32,17 +35,32 @@ type ConsumerGroupInCluster struct {
 type AllConsumerGroupsInCluster = []ConsumerGroupInCluster
 
 func getConsumerGroupsInCluster(ctx context.Context, cluster KafkaCluster) (AllConsumerGroupsInCluster, error) {
-	listedGroups, err := cluster.adminClient.ListGroups(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("could not list groups: %w", err)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	var listedGroups kadm.ListedGroups
+	var listedGroupsError error
+	go func() {
+		defer wg.Done()
+		listedGroups, listedGroupsError = cluster.adminClient.ListGroups(ctx)
+	}()
+
+	var describedGroups kadm.DescribedGroups
+	var describedGroupsError error
+	go func() {
+		defer wg.Done()
+		describedGroups, describedGroupsError = cluster.adminClient.DescribeGroups(ctx, listedGroups.Groups()...)
+	}()
+
+	if listedGroupsError != nil {
+		return nil, fmt.Errorf("could not list groups: %s", listedGroupsError)
 	}
 
-	describedGroups, err := cluster.adminClient.DescribeGroups(ctx, listedGroups.Groups()...)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not describe consumer groups %w", err)
+	if describedGroupsError != nil {
+		return nil, fmt.Errorf("could not describe consumer groups %s", describedGroupsError)
 	}
 
+	wg.Wait()
 	allConsumerGroups := make(AllConsumerGroupsInCluster, 0)
 	for _, group := range describedGroups {
 		cg := ConsumerGroupInCluster{
