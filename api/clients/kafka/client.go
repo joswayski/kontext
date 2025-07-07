@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"sync"
 	"time"
 
-	config "github.com/joswayski/kontext/api/config"
+	"github.com/joswayski/kontext/api/config"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
@@ -85,4 +86,20 @@ func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 	}
 
 	return allClusters
+}
+
+func (clusters AllKafkaClusters) Close() {
+	var wg sync.WaitGroup
+	for id, cluster := range clusters {
+		wg.Add(1)
+
+		go func(id string, cluster KafkaCluster) {
+			defer wg.Done()
+			slog.Warn(fmt.Sprintf("Shutting down Kafka client for %s cluster", id))
+			cluster.client.Close()
+			slog.Warn(fmt.Sprintf("Kafka client for %s cluster shut down at", id))
+		}(id, cluster)
+	}
+
+	wg.Wait()
 }
