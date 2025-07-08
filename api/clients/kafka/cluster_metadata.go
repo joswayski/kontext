@@ -40,14 +40,14 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	var metaErr error
 	go func() {
 		defer wg.Done()
-		metadata, metaErr = cluster.adminClient.Metadata(ctx)
+		metadata, metaErr = cluster.AdminClient.Metadata(ctx)
 	}()
 
 	var logDirs kadm.DescribedAllLogDirs
 	var logDirsErr error
 	go func() {
 		defer wg.Done()
-		logDirs, logDirsErr = cluster.adminClient.DescribeAllLogDirs(ctx, nil)
+		logDirs, logDirsErr = cluster.AdminClient.DescribeAllLogDirs(ctx, nil)
 	}()
 
 	var consumerGroups kadm.ListedGroups
@@ -55,14 +55,14 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	go func() {
 		defer wg.Done()
-		consumerGroups, consumerGroupsError = cluster.adminClient.ListGroups(ctx)
+		consumerGroups, consumerGroupsError = cluster.AdminClient.ListGroups(ctx)
 	}()
 	wg.Wait()
 
 	if metaErr != nil {
 		msg := fmt.Sprintf("Unable to retrieve metadata: %s. Please check if the cluster is running.", metaErr.Error())
 		return ClusterMetaData{
-			Id:      cluster.config.Id,
+			Id:      cluster.Config.Id,
 			Status:  MetadataStatusError,
 			Message: msg,
 		}
@@ -71,7 +71,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	if logDirsErr != nil {
 		msg := fmt.Sprintf("Unable to retrieve describe log dirs: %s.", logDirsErr.Error())
 		return ClusterMetaData{
-			Id:      cluster.config.Id,
+			Id:      cluster.Config.Id,
 			Status:  MetadataStatusError,
 			Message: msg,
 		}
@@ -80,7 +80,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	if consumerGroupsError != nil {
 		msg := fmt.Sprintf("Unable to retrieve consumer groups: %s.", consumerGroupsError.Error())
 		return ClusterMetaData{
-			Id:      cluster.config.Id,
+			Id:      cluster.Config.Id,
 			Status:  MetadataStatusError,
 			Message: msg,
 		}
@@ -111,9 +111,9 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	for _, brokerLogDirs := range logDirs {
 		if brokerLogDirs.Error() != nil {
-			msg := fmt.Sprintf("Error retrieving log directories for brokers%s: %s", cluster.config.Id, brokerLogDirs.Error())
+			msg := fmt.Sprintf("Error retrieving log directories for brokers%s: %s", cluster.Config.Id, brokerLogDirs.Error())
 			return ClusterMetaData{
-				Id:      cluster.config.Id,
+				Id:      cluster.Config.Id,
 				Status:  MetadataStatusError,
 				Message: msg,
 			}
@@ -129,7 +129,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	}
 
 	return ClusterMetaData{
-		Id:                 cluster.config.Id,
+		Id:                 cluster.Config.Id,
 		Status:             MetadataStatusConnected,
 		BrokerCount:        brokerCount,
 		TopicCount:         topicCount,
@@ -168,4 +168,14 @@ func GetMetadataForAllClusters(ctx context.Context, clients AllKafkaClusters) Ge
 
 	results.ClusterCount = len(results.Clusters)
 	return results
+}
+
+func GetMetadata(ctx context.Context, clients AllKafkaClusters) (any, error) {
+
+	v, err := clients["production"].AdminClient.DescribeGroups(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
 }
