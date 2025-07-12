@@ -24,14 +24,21 @@ func GetAllRoutes(r *gin.Engine) []Route {
 }
 
 func getRouteDescription(route string) string {
-	result := ""
 	if route == "/" {
-		result = "Returns basic endpoint info."
+		return "Returns basic endpoint info. You're here now!"
 	}
 
 	if route == "/api/v1/clusters" {
-		result = "Returns the cluster IDs along with connectivity information"
+		return "Returns the cluster IDs along with connectivity information"
 	}
 
-	return result
+	if route == "/api/v1/clusters/:clusterId" {
+		return "Returns the topics and consumers of the cluster"
+	}
+
+	if route == "/api/v1/clusters/:clusterId/topics" {
+		return "Returns the topics in the cluster, along with the consumer groups"
+	}
+
+	return "No description found!"
 }
