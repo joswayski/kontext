@@ -33,7 +33,7 @@ type AllConsumerGroupsInCluster = []ConsumerGroupInCluster
 
 func getConsumerGroupsInCluster(ctx context.Context, cluster KafkaCluster) (AllConsumerGroupsInCluster, error) {
 
-	describedGroups, err := cluster.AdminClient.DescribeGroups(ctx)
+	describedGroups, err := cluster.adminClient.DescribeGroups(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to return consumer groups for cluster: %s", err)
 	}

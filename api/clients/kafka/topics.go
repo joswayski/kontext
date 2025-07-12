@@ -19,7 +19,7 @@ type TopicsInCluster struct {
 type AllTopicsInCluster = []TopicsInCluster
 
 func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInCluster, error) {
-	topics, err := cluster.AdminClient.ListTopics(ctx)
+	topics, err := cluster.adminClient.ListTopics(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve toics in cluster %s", err.Error())
 	}
@@ -49,12 +49,12 @@ func CreateTopics(ctx context.Context, clients AllKafkaClusters) {
 	// TODO check if topic exists first
 	slog.Info("Creating topics...")
 	for _, cluster := range clients {
-		_, err := cluster.AdminClient.CreateTopics(ctx, 1, 1, nil, topics...)
+		_, err := cluster.adminClient.CreateTopics(ctx, 1, 1, nil, topics...)
 		if err != nil {
 			slog.Warn("Unable to create topics")
 			continue
 		}
-		slog.Info(fmt.Sprintf("Topics created in %s cluster", cluster.Config.Id))
+		slog.Info(fmt.Sprintf("Topics created in %s cluster", cluster.config.Id))
 	}
 }
 
@@ -83,7 +83,7 @@ func SeedTopics(ctx context.Context, clients AllKafkaClusters) {
 				continue
 			}
 
-			cluster.Client.Produce(ctx, &kgo.Record{
+			cluster.client.Produce(ctx, &kgo.Record{
 				Topic: topic,
 				Key:   []byte(gofakeit.UUID()),
 				Value: jsonData,

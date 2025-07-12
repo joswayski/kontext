@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,7 +13,6 @@ import (
 	kafka "github.com/joswayski/kontext/api/clients/kafka"
 	config "github.com/joswayski/kontext/api/config"
 	"github.com/joswayski/kontext/api/routes"
-	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 func startServer(srv *http.Server, cfg config.KontextConfig) {
@@ -34,73 +32,6 @@ func startConsumers(allClusters kafka.AllKafkaClusters) {
 		return
 	}
 
-	for clusterId, cluster := range allClusters {
-		// Capture the cluster in a local variable to avoid goroutine closure issues
-		clusterCopy := cluster
-		clusterIdCopy := clusterId
-
-		// Start consumer goroutine
-		go func() {
-			slog.Info(fmt.Sprintf("Starting consumer for cluster: %s", clusterIdCopy))
-
-			for {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-				// Poll for messages (this is how franz-go consumers work)
-				fetches := clusterCopy.Client.PollFetches(ctx)
-				cancel()
-
-				// Process any fetched records
-				if errs := fetches.Errors(); len(errs) > 0 {
-					for _, err := range errs {
-						slog.Error(fmt.Sprintf("Error polling cluster %s: %v", clusterIdCopy, err))
-					}
-				}
-
-				// Iterate through all fetched records
-				iter := fetches.RecordIter()
-				for !iter.Done() {
-					record := iter.Next()
-					slog.Info(fmt.Sprintf("Consumed message from cluster %s, topic %s: %s",
-						clusterIdCopy, record.Topic, string(record.Value)))
-				}
-
-				// Small delay before next poll
-				time.Sleep(time.Millisecond * 100)
-			}
-		}()
-
-		// Start producer goroutine
-		go func() {
-			slog.Info(fmt.Sprintf("Starting producer for cluster: %s", clusterIdCopy))
-
-			for {
-				ctx := context.Background()
-				var wg sync.WaitGroup
-				wg.Add(1)
-
-				// Create a test message
-				record := &kgo.Record{
-					Topic: "orders",
-					Value: []byte(fmt.Sprintf("Test message from %s at %s", clusterIdCopy, time.Now().Format(time.RFC3339))),
-				}
-
-				clusterCopy.Client.Produce(ctx, record, func(_ *kgo.Record, err error) {
-					defer wg.Done()
-					if err != nil {
-						slog.Error(fmt.Sprintf("Produce error in cluster %s: %v", clusterIdCopy, err))
-					} else {
-						slog.Info(fmt.Sprintf("Produced message to cluster %s, topic %s", clusterIdCopy, record.Topic))
-					}
-				})
-
-				wg.Wait()
-
-				// Wait 5 seconds before producing the next message
-				time.Sleep(time.Second * 5)
-			}
-		}()
-	}
 }
 
 func awaitShutdownSignal(srv *http.Server) {
@@ -143,8 +74,8 @@ func main() {
 	topicWg.Wait()
 
 	// TODO temporary
-	go kafka.SeedTopics(ctx, kafkaClusters)
-	go startConsumers(kafkaClusters)
+	// go kafka.SeedTopics(ctx, kafkaClusters)
+	// go startConsumers(kafkaClusters)
 	go startServer(srv, *cfg)
 
 	awaitShutdownSignal(srv)

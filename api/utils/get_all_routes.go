@@ -40,5 +40,9 @@ func getRouteDescription(route string) string {
 		return "Returns the topics in the cluster, along with the consumer groups"
 	}
 
-	return "No description found!"
+	if route == "/api/v1/health" {
+		return "Simple healthcheck!"
+	}
+
+	return "No description found! Would you be so kind to make a PR here? https://github.com/joswayski/kontext/blob/main/api/utils/get_all_routes.go"
 }

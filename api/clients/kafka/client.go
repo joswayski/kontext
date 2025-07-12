@@ -15,9 +15,9 @@ import (
 
 // The client, admin client, and config for a cluster
 type KafkaCluster struct {
-	Client      *kgo.Client
-	AdminClient *kadm.Client
-	Config      config.KafkaClusterConfig
+	client      *kgo.Client
+	adminClient *kadm.Client
+	config      config.KafkaClusterConfig
 }
 
 // All clusters with their client, admin client, and config
@@ -79,9 +79,9 @@ func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 		slog.Info(fmt.Sprintf("Created clients for %s cluster", clusterId))
 
 		allClusters[clusterId] = KafkaCluster{
-			Client:      normalClient,
-			AdminClient: adminClient,
-			Config:      clusterConfig,
+			client:      normalClient,
+			adminClient: adminClient,
+			config:      clusterConfig,
 		}
 	}
 
@@ -96,7 +96,7 @@ func (clusters AllKafkaClusters) Close() {
 		go func(id string, cluster KafkaCluster) {
 			defer wg.Done()
 			slog.Warn(fmt.Sprintf("Shutting down Kafka client for %s cluster", id))
-			cluster.Client.Close()
+			cluster.client.Close()
 			slog.Warn(fmt.Sprintf("Kafka client for %s cluster shut down at", id))
 		}(id, cluster)
 	}
