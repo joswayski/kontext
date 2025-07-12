@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/brianvoe/gofakeit"
+	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
@@ -18,6 +19,15 @@ type TopicsInCluster struct {
 
 type AllTopicsInCluster = []TopicsInCluster
 
+func Test(ctx context.Context, clients AllKafkaClusters) (kadm.DescribedGroups, error) {
+	v, err := clients["production"].adminClient.DescribeGroups(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
 func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInCluster, error) {
 	topics, err := cluster.adminClient.ListTopics(ctx)
 	if err != nil {
@@ -38,7 +48,6 @@ func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInC
 		return allTopics[i].Name < allTopics[j].Name
 	})
 	return allTopics, nil
-
 }
 
 // TODO - temporary - will cleanup in a separate PR
@@ -83,7 +92,7 @@ func SeedTopics(ctx context.Context, clients AllKafkaClusters) {
 				continue
 			}
 
-			cluster.client.Produce(ctx, &kgo.Record{
+			cluster.Client.Produce(ctx, &kgo.Record{
 				Topic: topic,
 				Key:   []byte(gofakeit.UUID()),
 				Value: jsonData,
