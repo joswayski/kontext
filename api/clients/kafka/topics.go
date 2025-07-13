@@ -109,30 +109,39 @@ func getConsumerGroupsForAllTopics(ctx context.Context, cluster KafkaCluster) (A
 }
 
 func GetTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInCluster, error) {
-	topics, err := cluster.adminClient.ListTopics(ctx)
-	if err != nil {
-		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve topics in cluster %s", err.Error())
+	var wg sync.WaitGroup
+	wg.Add(2)
+	var topicSizeData GetSizesForEachTopicResult
+	var topicSizeDataError error
+	go func() {
+		defer wg.Done()
+		topicSizeData, topicSizeDataError = GetTopicSizes(ctx, cluster)
+	}()
+
+	var consumerGroupsInTopics AllConsumerGroupsInTopics
+	var consumerGroupsInTopicsError error
+
+	go func() {
+		defer wg.Done()
+		consumerGroupsInTopics, consumerGroupsInTopicsError = getConsumerGroupsForAllTopics(ctx, cluster)
+	}()
+
+	if topicSizeDataError != nil {
+		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve topic sizes in cluster %s", topicSizeDataError.Error())
 	}
 
-	topicSizeData, topicSizeErr := GetTopicSizes(ctx, cluster)
-	if topicSizeErr != nil {
-		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve topic sizes in cluster %s", topicSizeErr.Error())
+	if consumerGroupsInTopicsError != nil {
+		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve consumer groups per topic %s", consumerGroupsInTopicsError.Error())
 	}
 
-	cgs, cgsError := getConsumerGroupsForAllTopics(ctx, cluster)
-	if cgsError != nil {
-		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve consumer groups per topic %s", cgsError.Error())
-	}
-
-	sortedTopics := topics.Sorted()
-
+	wg.Wait()
 	allTopics := make([]TopicInCluster, 0)
 
-	for _, topic := range sortedTopics {
+	for topic, sizeData := range topicSizeData.Topics {
 		allTopics = append(allTopics, TopicInCluster{
-			Name:               topic.Topic,
-			TotalSize:          topicSizeData.Topics[topic.Topic],
-			ConsumerGroupCount: len(cgs[topic.Topic]), // TODO
+			Name:               topic,
+			TotalSize:          sizeData,
+			ConsumerGroupCount: len(consumerGroupsInTopics[topic]),
 		})
 	}
 
