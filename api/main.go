@@ -26,7 +26,7 @@ func startServer(srv *http.Server, cfg config.KontextConfig) {
 	}
 }
 
-// TODO temporary
+// TODO temporary - we need to do this properly now and scale up for more data
 func startConsumers(allClusters kafka.AllKafkaClusters) {
 	slog.Info("Starting consumers")
 	if len(allClusters) == 0 {
