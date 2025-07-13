@@ -6,13 +6,15 @@ networks:
     driver: bridge
   kafka_drivers_network:
     driver: bridge
+  kafka_payments_network:
+    driver: bridge
   kontext_network:
     driver: bridge
 volumes:
   kafka-rides-0: null
   kafka-users-0: null
   kafka-drivers-0: null
-
+  kafka-payments-0: null
 
 services:
   api:
@@ -26,6 +28,7 @@ services:
       - kafka_rides_network
       - kafka_drivers_network
       - kafka_users_network
+      - kafka_payments_network
       - kontext_network
 
   web:
@@ -114,6 +117,30 @@ services:
       - 39092:39092
       - 39644:9644
 
+  # PAYMENTS Kafka Cluster
+  kafka-payments-0:
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:49092
+      - --advertise-kafka-addr internal://kafka-payments-0:9092,external://localhost:49092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:48082
+      - --advertise-pandaproxy-addr internal://kafka-payments-0:8082,external://localhost:48082
+      - --rpc-addr kafka-payments-0:33145
+      - --advertise-rpc-addr kafka-payments-0:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=info
+    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
+    container_name: kafka-payments-0
+    volumes:
+      - kafka-payments-0:/var/lib/redpanda/data
+    networks:
+      - kafka_payments_network
+    ports:
+      - 48082:48082
+      - 49092:49092
+      - 49644:9644
 
   # RIDES Console
   console-rides:
@@ -181,3 +208,26 @@ services:
       - 8083:8080
     depends_on:
       - kafka-drivers-0
+
+
+  # PAYMENTS Console
+  console-payments:
+    container_name: redpanda-console-payments
+    image: docker.redpanda.com/redpandadata/console:v3.1.2
+    networks:
+      - kafka_payments_network
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["kafka-payments-0:9092"]
+        redpanda:
+          adminApi:
+            enabled: true
+            urls: ["http://kafka-payments-0:9644"]
+    ports:
+      - 8084:8080
+    depends_on:
+      - kafka-payments-0
