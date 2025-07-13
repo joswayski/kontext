@@ -12,13 +12,15 @@ import (
 )
 
 type TopicInCluster struct {
-	Name      string `json:"name"`
-	TotalSize int    `json:"total_size"`
+	Name               string `json:"name"`
+	TotalSize          int    `json:"total_size"`
+	ConsumerGroupCount int    `json:"consumer_group_count"`
 }
 
 type AllTopicsInCluster struct {
-	Topics    []TopicInCluster `json:"topics"`
-	TotalSize int              `json:"total_size"`
+	Topics []TopicInCluster `json:"topics"`
+	// For all topics
+	TotalSize int `json:"total_size"`
 }
 
 type DetailedTopic struct {
@@ -27,7 +29,8 @@ type DetailedTopic struct {
 }
 
 type GetTopicsByClusterResult struct {
-	Topics []DetailedTopic `json:"topics"`
+	Topics     []DetailedTopic `json:"topics"`
+	TopicCount int             `json:"topic_count"`
 }
 
 func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId string) (GetTopicsByClusterResult, error) {
@@ -49,7 +52,6 @@ func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId
 	go func() {
 		defer wg.Done()
 		topicsAndConsumerGroups, topcisAndConsumerGroupsError = getConsumerGroupsForAllTopics(ctx, clients[clusterId])
-
 	}()
 
 	wg.Wait()
@@ -63,18 +65,19 @@ func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId
 	}
 
 	finalTopicList := make([]DetailedTopic, 0)
-
+	topicCount := 0
 	for _, topic := range allTopics.Topics {
 		detailedTopic := DetailedTopic{
 			TopicInCluster: topic,
 			ConsumerGroups: topicsAndConsumerGroups[topic.Name],
 		}
 		finalTopicList = append(finalTopicList, detailedTopic)
-
+		topicCount += 1
 	}
 
 	return GetTopicsByClusterResult{
-		Topics: finalTopicList,
+		Topics:     finalTopicList,
+		TopicCount: topicCount,
 	}, nil
 }
 
@@ -94,9 +97,9 @@ func getConsumerGroupsForAllTopics(ctx context.Context, cluster KafkaCluster) (A
 
 		for _, topic := range topics {
 			cg := ConsumerGroupInCluster{
-				Name:         group.Group,
-				State:        ConsumerGroupState(group.State),
-				MembersCount: len(group.Members),
+				Name:        group.Group,
+				State:       ConsumerGroupState(group.State),
+				MemberCount: len(group.Members),
 			}
 			allTopics[topic] = append(allTopics[topic], cg)
 		}
@@ -116,14 +119,20 @@ func GetTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInC
 		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve topic sizes in cluster %s", topicSizeErr.Error())
 	}
 
+	cgs, cgsError := getConsumerGroupsForAllTopics(ctx, cluster)
+	if cgsError != nil {
+		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve consumer groups per topic %s", cgsError.Error())
+	}
+
 	sortedTopics := topics.Sorted()
 
 	allTopics := make([]TopicInCluster, 0)
 
 	for _, topic := range sortedTopics {
 		allTopics = append(allTopics, TopicInCluster{
-			Name:      topic.Topic,
-			TotalSize: topicSizeData.Topics[topic.Topic],
+			Name:               topic.Topic,
+			TotalSize:          topicSizeData.Topics[topic.Topic],
+			ConsumerGroupCount: len(cgs[topic.Topic]), // TODO
 		})
 	}
 
@@ -166,9 +175,9 @@ func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTo
 		for _, logDir := range brokerLogDirs {
 			for _, partitionMap := range logDir.Topics {
 				for _, partitionData := range partitionMap {
-					// Skip internal topics
 					_, exists := topics[partitionData.Topic]
 					if !exists {
+						// Skip internal topics
 						continue
 					}
 					finalResult.Topics[partitionData.Topic] += int(partitionData.Size)
