@@ -5,40 +5,53 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"sort"
 
 	"github.com/brianvoe/gofakeit"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-type TopicsInCluster struct {
+type TopicInCluster struct {
 	Name            string `json:"name"`
 	PartitionsCount int    `json:"partitions_count"`
 }
 
-type AllTopicsInCluster = []TopicsInCluster
+type AllTopicsInCluster = []TopicInCluster
 
 type DetailedTopic struct {
+	TopicInCluster
 	ConsumerGroups []string `json:"consumer_groups"`
 }
 
 type GetTopicsByClusterResult struct {
-	Topics DetailedTopic `json:"topics"`
+	Topics []DetailedTopic `json:"topics"`
 }
 
 func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId string) (GetTopicsByClusterResult, error) {
+	allTopics, err := getTopicsInCluster(ctx, clients[clusterId])
+	if err != nil {
+		return GetTopicsByClusterResult{}, fmt.Errorf("unable to retrieve topics %s", err.Error())
+	}
 
 	topicsAndConsumerGroups, cgErr := getConsumerGroupsForAllTopics(ctx, clients[clusterId])
 
-	consumerGroups := make([]string, 0)
 	if cgErr != nil {
-		slog.Error("error retrieving consumer groups")
+		return GetTopicsByClusterResult{}, fmt.Errorf("unable to retrieve consumer groups for topics %s", err.Error())
 	}
 
-	result := GetTopicsByClusterResult{
-		ConsumerGroups: consumerGroups,
+	finalTopicList := make([]DetailedTopic, 0)
+
+	for _, topic := range allTopics {
+		detailedTopic := DetailedTopic{
+			TopicInCluster: topic,
+			ConsumerGroups: topicsAndConsumerGroups[topic.Name],
+		}
+		finalTopicList = append(finalTopicList, detailedTopic)
+
 	}
-	return result, nil
+
+	return GetTopicsByClusterResult{
+		Topics: finalTopicList,
+	}, nil
 }
 
 type AllConsumerGroupsInTopics = map[string][]string
@@ -69,19 +82,17 @@ func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInC
 		return nil, fmt.Errorf("unable to retrieve toics in cluster %s", err.Error())
 	}
 
-	allTopics := make(AllTopicsInCluster, 0)
-	for _, topic := range topics {
+	sortedTopics := topics.Sorted()
 
-		allTopics = append(allTopics, TopicsInCluster{
+	allTopics := make(AllTopicsInCluster, 0)
+	for _, topic := range sortedTopics {
+
+		allTopics = append(allTopics, TopicInCluster{
 			Name:            topic.Topic,
 			PartitionsCount: int(len(topic.Partitions)),
 		})
 	}
 
-	// Sort alphabetically
-	sort.Slice(allTopics, func(i, j int) bool {
-		return allTopics[i].Name < allTopics[j].Name
-	})
 	return allTopics, nil
 }
 
