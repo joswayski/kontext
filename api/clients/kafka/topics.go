@@ -13,6 +13,7 @@ import (
 type TopicInCluster struct {
 	Name            string `json:"name"`
 	PartitionsCount int    `json:"partitions_count"`
+	TotalSize       int    `json:"total_size"`
 }
 
 type AllTopicsInCluster = []TopicInCluster
@@ -79,7 +80,12 @@ func getConsumerGroupsForAllTopics(ctx context.Context, cluster KafkaCluster) (A
 func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInCluster, error) {
 	topics, err := cluster.adminClient.ListTopics(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve toics in cluster %s", err.Error())
+		return nil, fmt.Errorf("unable to retrieve topics in cluster %s", err.Error())
+	}
+
+	allTopicSizes, topicSizeErr := getSizesPerTopic(ctx, cluster)
+	if topicSizeErr != nil {
+		return nil, fmt.Errorf("unable to retrieve topic sizes in cluster %s", err.Error())
 	}
 
 	sortedTopics := topics.Sorted()
@@ -90,10 +96,39 @@ func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInC
 		allTopics = append(allTopics, TopicInCluster{
 			Name:            topic.Topic,
 			PartitionsCount: int(len(topic.Partitions)),
+			TotalSize:       allTopicSizes[topic.Topic],
 		})
 	}
 
 	return allTopics, nil
+}
+
+type GetSizesPerTopicResult = map[string]int
+
+func getSizesPerTopic(ctx context.Context, cluster KafkaCluster) (GetSizesPerTopicResult, error) {
+	logDirs, logDirsErr := cluster.adminClient.DescribeAllLogDirs(ctx, nil)
+
+	if logDirsErr != nil {
+		return GetSizesPerTopicResult{}, fmt.Errorf("unable to retrieve sizes of topics %s", logDirsErr.Error())
+	}
+
+	result := make(GetSizesPerTopicResult)
+
+	for _, brokerLogDirs := range logDirs {
+		if brokerLogDirs.Error() != nil {
+			return GetSizesPerTopicResult{}, fmt.Errorf("error retrieving log directories for brokers%s: %s", cluster.config.Id, brokerLogDirs.Error())
+		}
+
+		for _, logDir := range brokerLogDirs {
+			for _, partitionMap := range logDir.Topics {
+				for _, partitionData := range partitionMap {
+					result[partitionData.Topic] = result[partitionData.Topic] + int(partitionData.Size)
+				}
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // TODO - temporary - will cleanup in a separate PR
