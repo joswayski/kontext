@@ -1,13 +1,13 @@
 # Redpanda Dockerfile template from https://docs.redpanda.com/redpanda-labs/docker-compose/single-broker/
 networks:
-  kafka_production_network:
+  kafka_rides_network:
     driver: bridge
   kafka_analytics_network:
     driver: bridge
   kontext_network:
     driver: bridge
 volumes:
-  kafka-production-0: null
+  kafka-rides-0: null
   kafka-analytics-0: null
 
 services:
@@ -19,7 +19,7 @@ services:
     ports:
       - "${API_PORT:-4000}:${API_PORT:-4000}"
     networks:
-      - kafka_production_network
+      - kafka_rides_network
       - kafka_analytics_network
       - kontext_network
 
@@ -33,26 +33,26 @@ services:
     networks:
       - kontext_network
 
-  # PRODUCTION Kafka Cluster
-  kafka-production-0:
+  # RIDES Kafka Cluster
+  kafka-rides-0:
     command:
       - redpanda
       - start
       - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr internal://kafka-production-0:9092,external://localhost:19092
+      - --advertise-kafka-addr internal://kafka-rides-0:9092,external://localhost:19092
       - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
-      - --advertise-pandaproxy-addr internal://kafka-production-0:8082,external://localhost:18082
-      - --rpc-addr kafka-production-0:33145
-      - --advertise-rpc-addr kafka-production-0:33145
+      - --advertise-pandaproxy-addr internal://kafka-rides-0:8082,external://localhost:18082
+      - --rpc-addr kafka-rides-0:33145
+      - --advertise-rpc-addr kafka-rides-0:33145
       - --mode dev-container
       - --smp 1
       - --default-log-level=info
     image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kafka-production-0
+    container_name: kafka-rides-0
     volumes:
-      - kafka-production-0:/var/lib/redpanda/data
+      - kafka-rides-0:/var/lib/redpanda/data
     networks:
-      - kafka_production_network
+      - kafka_rides_network
     ports:
       - 18082:18082
       - 19092:19092
@@ -83,27 +83,27 @@ services:
       - 29092:29092
       - 29644:9644
 
-  # PRODUCTION Console
-  console-production:
-    container_name: redpanda-console-production
+  # RIDES Console
+  console-rides:
+    container_name: redpanda-console-rides
     image: docker.redpanda.com/redpandadata/console:v3.1.2
     networks:
-      - kafka_production_network
+      - kafka_rides_network
     entrypoint: /bin/sh
     command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
     environment:
       CONFIG_FILEPATH: /tmp/config.yml
       CONSOLE_CONFIG_FILE: |
         kafka:
-          brokers: ["kafka-production-0:9092"]
+          brokers: ["kafka-rides-0:9092"]
         redpanda:
           adminApi:
             enabled: true
-            urls: ["http://kafka-production-0:9644"]
+            urls: ["http://kafka-rides-0:9644"]
     ports:
       - 8080:8080
     depends_on:
-      - kafka-production-0
+      - kafka-rides-0
 
   # ANALYTICS Console
   console-analytics:

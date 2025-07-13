@@ -19,7 +19,7 @@ This will start the following services:
 - Web app at http://localhost:3000
 - API at http://localhost:4000
 - Kafka Clusters:
-  - **production**: Broker at kafka-production-0:9092, Admin API at http://localhost:19644, Console at http://localhost:8080
+  - **rides**: Broker at kafka-rides-0:9092, Admin API at http://localhost:19644, Console at http://localhost:8080
   - **analytics**: Broker at kafka-analytics-0:9092, Admin API at http://localhost:29644, Console at http://localhost:8081
 
 
