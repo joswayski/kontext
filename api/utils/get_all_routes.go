@@ -40,7 +40,7 @@ func getRouteDescription(route string) string {
 		return "Returns the topics in the cluster, along with the consumer groups"
 	}
 
-	if route == "/api/v1/health" {
+	if route == "/health" {
 		return "Simple healthcheck!"
 	}
 

@@ -11,9 +11,8 @@ import (
 )
 
 type TopicInCluster struct {
-	Name            string `json:"name"`
-	PartitionsCount int    `json:"partitions_count"`
-	TotalSize       int    `json:"total_size"`
+	Name      string `json:"name"`
+	TotalSize int    `json:"total_size"`
 }
 
 type AllTopicsInCluster = []TopicInCluster
@@ -94,9 +93,8 @@ func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInC
 	for _, topic := range sortedTopics {
 
 		allTopics = append(allTopics, TopicInCluster{
-			Name:            topic.Topic,
-			PartitionsCount: int(len(topic.Partitions)),
-			TotalSize:       allTopicSizes[topic.Topic],
+			Name:      topic.Topic,
+			TotalSize: allTopicSizes[topic.Topic],
 		})
 	}
 
