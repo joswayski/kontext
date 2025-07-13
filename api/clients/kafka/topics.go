@@ -19,7 +19,7 @@ type AllTopicsInCluster = []TopicInCluster
 
 type DetailedTopic struct {
 	TopicInCluster
-	ConsumerGroups []string `json:"consumer_groups"`
+	ConsumerGroups []ConsumerGroupInCluster `json:"consumer_groups"`
 }
 
 type GetTopicsByClusterResult struct {
@@ -54,7 +54,7 @@ func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId
 	}, nil
 }
 
-type AllConsumerGroupsInTopics = map[string][]string
+type AllConsumerGroupsInTopics = map[string][]ConsumerGroupInCluster
 
 func getConsumerGroupsForAllTopics(ctx context.Context, cluster KafkaCluster) (AllConsumerGroupsInTopics, error) {
 	allGroups, err := cluster.adminClient.DescribeGroups(ctx)
@@ -63,13 +63,18 @@ func getConsumerGroupsForAllTopics(ctx context.Context, cluster KafkaCluster) (A
 		return nil, err
 	}
 
-	allTopics := make(map[string][]string)
+	allTopics := make(AllConsumerGroupsInTopics)
 
 	for _, group := range allGroups {
 		topics := group.AssignedPartitions().Topics()
 
 		for _, topic := range topics {
-			allTopics[topic] = append(allTopics[topic], group.Group)
+			cg := ConsumerGroupInCluster{
+				Name:         group.Group,
+				State:        ConsumerGroupState(group.State),
+				MembersCount: len(group.Members),
+			}
+			allTopics[topic] = append(allTopics[topic], cg)
 		}
 	}
 
