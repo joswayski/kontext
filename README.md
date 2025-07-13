@@ -21,6 +21,7 @@ This will start the following services to simulate a ridesharing application:
 - Kafka Clusters:
   - **rides**: Broker at kafka-rides-0:9092, Admin API at http://localhost:19644, Console at http://localhost:8080
   - **users**: Broker at kafka-users-0:9092, Admin API at http://localhost:29644, Console at http://localhost:8081
+  - **drivers**: Broker at kafka-drivers-0:9092, Admin API at http://localhost:39644, Console at http://localhost:8082
 
 
 ### Notes

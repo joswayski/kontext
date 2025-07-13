@@ -4,11 +4,15 @@ networks:
     driver: bridge
   kafka_users_network:
     driver: bridge
+  kafka_drivers_network:
+    driver: bridge
   kontext_network:
     driver: bridge
 volumes:
   kafka-rides-0: null
   kafka-users-0: null
+  kafka-drivers-0: null
+
 
 services:
   api:
@@ -20,6 +24,7 @@ services:
       - "${API_PORT:-4000}:${API_PORT:-4000}"
     networks:
       - kafka_rides_network
+      - kafka_drivers_network
       - kafka_users_network
       - kontext_network
 
@@ -58,6 +63,7 @@ services:
       - 19092:19092
       - 19644:9644
 
+
   # USERS Kafka Cluster
   kafka-users-0:
     command:
@@ -82,6 +88,32 @@ services:
       - 28082:28082
       - 29092:29092
       - 29644:9644
+
+  # DRIVERS Kafka Cluster
+  kafka-drivers-0:
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:39092
+      - --advertise-kafka-addr internal://kafka-drivers-0:9092,external://localhost:39092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:38082
+      - --advertise-pandaproxy-addr internal://kafka-drivers-0:8082,external://localhost:38082
+      - --rpc-addr kafka-drivers-0:33145
+      - --advertise-rpc-addr kafka-drivers-0:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=info
+    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
+    container_name: kafka-drivers-0
+    volumes:
+      - kafka-drivers-0:/var/lib/redpanda/data
+    networks:
+      - kafka_drivers_network
+    ports:
+      - 38082:38082
+      - 39092:39092
+      - 39644:9644
+
 
   # RIDES Console
   console-rides:
@@ -126,3 +158,26 @@ services:
       - 8081:8080
     depends_on:
       - kafka-users-0
+
+
+  # DRIVERS Console
+  console-drivers:
+    container_name: redpanda-console-drivers
+    image: docker.redpanda.com/redpandadata/console:v3.1.2
+    networks:
+      - kafka_drivers_network
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["kafka-drivers-0:9092"]
+        redpanda:
+          adminApi:
+            enabled: true
+            urls: ["http://kafka-drivers-0:9644"]
+    ports:
+      - 8083:8080
+    depends_on:
+      - kafka-drivers-0
