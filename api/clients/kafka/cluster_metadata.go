@@ -63,7 +63,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	go func() {
 		defer wg.Done()
-		topicSizeData, topicSizeError = GetSizesForEveryTopic(ctx, cluster)
+		topicSizeData, topicSizeError = GetTopicSizes(ctx, cluster)
 	}()
 	wg.Wait()
 

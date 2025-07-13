@@ -111,7 +111,7 @@ func GetTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInC
 		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve topics in cluster %s", err.Error())
 	}
 
-	topicSizeData, topicSizeErr := GetSizesForEveryTopic(ctx, cluster)
+	topicSizeData, topicSizeErr := GetTopicSizes(ctx, cluster)
 	if topicSizeErr != nil {
 		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve topic sizes in cluster %s", topicSizeErr.Error())
 	}
@@ -138,7 +138,7 @@ type GetSizesForEachTopicResult struct {
 	TotalSize int            `json:"total_size"`
 }
 
-func GetSizesForEveryTopic(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTopicResult, error) {
+func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTopicResult, error) {
 	logDirs, logDirsErr := cluster.adminClient.DescribeAllLogDirs(ctx, nil)
 
 	if logDirsErr != nil {
@@ -150,6 +150,14 @@ func GetSizesForEveryTopic(ctx context.Context, cluster KafkaCluster) (GetSizesF
 		TotalSize: 0,
 	}
 
+	// Skip internal topics
+	listedTopics, topicsErr := cluster.adminClient.ListTopics(ctx)
+	if topicsErr != nil {
+		return GetSizesForEachTopicResult{}, fmt.Errorf("unable to retrieve sizes of topics %s", topicsErr.Error())
+
+	}
+	topics := listedTopics.TopicsSet()
+
 	for _, brokerLogDirs := range logDirs {
 		if brokerLogDirs.Error() != nil {
 			return GetSizesForEachTopicResult{}, fmt.Errorf("error retrieving log directories for brokers%s: %s", cluster.config.Id, brokerLogDirs.Error())
@@ -158,9 +166,13 @@ func GetSizesForEveryTopic(ctx context.Context, cluster KafkaCluster) (GetSizesF
 		for _, logDir := range brokerLogDirs {
 			for _, partitionMap := range logDir.Topics {
 				for _, partitionData := range partitionMap {
-					// Per topic size
-					finalResult.Topics[partitionData.Topic] = finalResult.Topics[partitionData.Topic] + int(partitionData.Size)
-					finalResult.TotalSize = finalResult.TotalSize + int(partitionData.Size)
+					// Skip internal topics
+					_, exists := topics[partitionData.Topic]
+					if !exists {
+						continue
+					}
+					finalResult.Topics[partitionData.Topic] += int(partitionData.Size)
+					finalResult.TotalSize += int(partitionData.Size)
 				}
 			}
 		}
