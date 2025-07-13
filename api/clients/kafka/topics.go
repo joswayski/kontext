@@ -78,14 +78,14 @@ func getConsumerGroupsForAllTopics(ctx context.Context, cluster KafkaCluster) (A
 }
 
 func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInCluster, error) {
-	topics, err := cluster.adminClient.ListTopics(ctx)
+	topics, err := cluster.adminClient.ListTopicsWithInternal(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve topics in cluster %s", err.Error())
 	}
 
 	allTopicSizes, topicSizeErr := getSizesPerTopic(ctx, cluster)
 	if topicSizeErr != nil {
-		return nil, fmt.Errorf("unable to retrieve topic sizes in cluster %s", err.Error())
+		return nil, fmt.Errorf("unable to retrieve topic sizes in cluster %s", topicSizeErr.Error())
 	}
 
 	sortedTopics := topics.Sorted()

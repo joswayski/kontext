@@ -95,13 +95,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	topicCount := 0
 	if metadata.Topics != nil {
-		for _, topic := range metadata.Topics {
-			if !topic.IsInternal {
-				// In the future I might revisit this but for now,
-				// I only actually care about the 'main' topics
-				topicCount += 1
-			}
-		}
+		topicCount += len(metadata.Topics)
 	}
 
 	consumerGroupCount := 0
