@@ -8,7 +8,7 @@ import (
 type GetClusterByIdResponse struct {
 	Metadata       ClusterMetaData            `json:"metadata"`
 	Brokers        []string                   `json:"brokers"` // URLs for all brokers
-	Topics         AllTopicsInCluster         `json:"topics"`
+	Topics         []TopicInCluster           `json:"topics"`
 	ConsumerGroups AllConsumerGroupsInCluster `json:"consumer_groups"`
 }
 
@@ -29,12 +29,12 @@ func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (G
 		return GetClusterByIdResponse{}, fmt.Errorf("could not describe groups: %w", err)
 	}
 
-	topics, _ := getTopicsInCluster(ctx, cluster)
+	allTopicData, _ := GetTopicsInCluster(ctx, cluster)
 
 	return GetClusterByIdResponse{
 		Metadata:       metadata,
 		ConsumerGroups: consumerGroups,
 		Brokers:        cluster.config.BrokerURLs,
-		Topics:         topics,
+		Topics:         allTopicData.Topics,
 	}, nil
 }

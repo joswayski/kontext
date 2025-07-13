@@ -3,7 +3,6 @@ package clients
 import (
 	"context"
 	"fmt"
-	"sort"
 )
 
 type ConsumerGroupState string
@@ -24,9 +23,9 @@ const (
 )
 
 type ConsumerGroupInCluster struct {
-	Name         string             `json:"name"`
-	State        ConsumerGroupState `json:"state"`
-	MembersCount int                `json:"members_count"`
+	Name        string             `json:"name"`
+	State       ConsumerGroupState `json:"state"`
+	MemberCount int                `json:"member_count"`
 }
 
 type AllConsumerGroupsInCluster = []ConsumerGroupInCluster
@@ -37,21 +36,17 @@ func getConsumerGroupsInCluster(ctx context.Context, cluster KafkaCluster) (AllC
 	if err != nil {
 		return nil, fmt.Errorf("unable to return consumer groups for cluster: %s", err)
 	}
+	sortedGroups := describedGroups.Sorted()
 
 	allConsumerGroups := make(AllConsumerGroupsInCluster, 0)
-	for _, group := range describedGroups {
+	for _, group := range sortedGroups {
 		cg := ConsumerGroupInCluster{
-			Name:         group.Group,
-			State:        ConsumerGroupState(group.State),
-			MembersCount: len(group.Members),
+			Name:        group.Group,
+			State:       ConsumerGroupState(group.State),
+			MemberCount: len(group.Members),
 		}
 		allConsumerGroups = append(allConsumerGroups, cg)
 	}
-
-	// Sort alphabetically
-	sort.Slice(allConsumerGroups, func(i, j int) bool {
-		return allConsumerGroups[i].Name < allConsumerGroups[j].Name
-	})
 
 	return allConsumerGroups, nil
 }
