@@ -43,12 +43,12 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		metadata, metaErr = cluster.adminClient.Metadata(ctx)
 	}()
 
-	var logDirs kadm.DescribedAllLogDirs
-	var logDirsErr error
-	go func() {
-		defer wg.Done()
-		logDirs, logDirsErr = cluster.adminClient.DescribeAllLogDirs(ctx, nil)
-	}()
+	// var logDirs kadm.DescribedAllLogDirs
+	// var logDirsErr error
+	// go func() {
+	// 	defer wg.Done()
+	// 	logDirs, logDirsErr = cluster.adminClient.DescribeAllLogDirs(ctx, nil)
+	// }()
 
 	var consumerGroups kadm.ListedGroups
 	var consumerGroupsError error
@@ -56,6 +56,14 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	go func() {
 		defer wg.Done()
 		consumerGroups, consumerGroupsError = cluster.adminClient.ListGroups(ctx)
+	}()
+
+	var topicSizeData GetSizesForEachTopicResult
+	var topicSizeError error
+
+	go func() {
+		defer wg.Done()
+		topicSizeData, topicSizeError = GetSizesForEveryTopic(ctx, cluster)
 	}()
 	wg.Wait()
 
@@ -68,14 +76,14 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		}
 	}
 
-	if logDirsErr != nil {
-		msg := fmt.Sprintf("Unable to retrieve describe log dirs: %s.", logDirsErr.Error())
-		return ClusterMetaData{
-			Id:      cluster.config.Id,
-			Status:  MetadataStatusError,
-			Message: msg,
-		}
-	}
+	// if logDirsErr != nil {
+	// 	msg := fmt.Sprintf("Unable to retrieve describe log dirs: %s.", logDirsErr.Error())
+	// 	return ClusterMetaData{
+	// 		Id:      cluster.config.Id,
+	// 		Status:  MetadataStatusError,
+	// 		Message: msg,
+	// 	}
+	// }
 
 	if consumerGroupsError != nil {
 		msg := fmt.Sprintf("Unable to retrieve consumer groups: %s.", consumerGroupsError.Error())
@@ -86,7 +94,14 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		}
 	}
 
-	var totalClusterSize int64
+	if topicSizeError != nil {
+		msg := fmt.Sprintf("Unable to retrieve topic size data: %s.", consumerGroupsError.Error())
+		return ClusterMetaData{
+			Id:      cluster.config.Id,
+			Status:  MetadataStatusError,
+			Message: msg,
+		}
+	}
 
 	brokerCount := 0
 	if metadata.Brokers != nil {
@@ -95,7 +110,14 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	topicCount := 0
 	if metadata.Topics != nil {
-		topicCount += len(metadata.Topics)
+		for _, topic := range metadata.Topics {
+			topicCount += len(metadata.Topics)
+			if !topic.IsInternal {
+				// In the future I might revisit this but for now,
+				// I only actually care about the 'main' topics
+				topicCount += 1
+			}
+		}
 	}
 
 	consumerGroupCount := 0
@@ -103,24 +125,26 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		consumerGroupCount = len(consumerGroups.Groups())
 	}
 
-	for _, brokerLogDirs := range logDirs {
-		if brokerLogDirs.Error() != nil {
-			msg := fmt.Sprintf("Error retrieving log directories for brokers%s: %s", cluster.config.Id, brokerLogDirs.Error())
-			return ClusterMetaData{
-				Id:      cluster.config.Id,
-				Status:  MetadataStatusError,
-				Message: msg,
-			}
-		}
+	// Incase we ever need this in the future, this includes internal topics
+	// For now, executive decision is to not include this as its not relevant for business Kontext
+	// for _, brokerLogDirs := range logDirs {
+	// 	if brokerLogDirs.Error() != nil {
+	// 		msg := fmt.Sprintf("Error retrieving log directories for brokers%s: %s", cluster.config.Id, brokerLogDirs.Error())
+	// 		return ClusterMetaData{
+	// 			Id:      cluster.config.Id,
+	// 			Status:  MetadataStatusError,
+	// 			Message: msg,
+	// 		}
+	// 	}
 
-		for _, logDir := range brokerLogDirs {
-			for _, partitionMap := range logDir.Topics {
-				for _, partitionData := range partitionMap {
-					totalClusterSize += partitionData.Size
-				}
-			}
-		}
-	}
+	// 	for _, logDir := range brokerLogDirs {
+	// 		for _, partitionMap := range logDir.Topics {
+	// 			for _, partitionData := range partitionMap {
+	// 				totalClusterSize += partitionData.Size
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	return ClusterMetaData{
 		Id:                 cluster.config.Id,
@@ -128,7 +152,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 		BrokerCount:        brokerCount,
 		TopicCount:         topicCount,
 		ConsumerGroupCount: consumerGroupCount,
-		TotalSize:          totalClusterSize,
+		TotalSize:          int64(topicSizeData.TotalSize),
 	}
 }
 
