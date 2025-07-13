@@ -79,9 +79,15 @@ func startConsumers(allClusters kafka.AllKafkaClusters) {
 				var wg sync.WaitGroup
 				wg.Add(1)
 
-				// Create a test message
+				var topic string
+				if time.Now().UnixNano()%2 == 0 {
+					topic = "orders"
+				} else {
+					topic = "users"
+				}
+
 				record := &kgo.Record{
-					Topic: "orders",
+					Topic: topic,
 					Value: []byte(fmt.Sprintf("Test message from %s at %s", clusterIdCopy, time.Now().Format(time.RFC3339))),
 				}
 
@@ -102,7 +108,6 @@ func startConsumers(allClusters kafka.AllKafkaClusters) {
 		}()
 	}
 }
-
 func awaitShutdownSignal(srv *http.Server) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

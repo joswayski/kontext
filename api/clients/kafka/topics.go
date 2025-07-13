@@ -8,7 +8,6 @@ import (
 	"sort"
 
 	"github.com/brianvoe/gofakeit"
-	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
@@ -19,15 +18,51 @@ type TopicsInCluster struct {
 
 type AllTopicsInCluster = []TopicsInCluster
 
-func Test(ctx context.Context, clients AllKafkaClusters) (kadm.DescribedGroups, error) {
-	v, err := clients["production"].adminClient.DescribeGroups(ctx)
+type DetailedTopic struct {
+	ConsumerGroups []string `json:"consumer_groups"`
+}
+
+type GetTopicsByClusterResult struct {
+	Topics DetailedTopic `json:"topics"`
+}
+
+func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId string) (GetTopicsByClusterResult, error) {
+
+	topicsAndConsumerGroups, cgErr := getConsumerGroupsForAllTopics(ctx, clients[clusterId])
+
+	consumerGroups := make([]string, 0)
+	if cgErr != nil {
+		slog.Error("error retrieving consumer groups")
+	}
+
+	result := GetTopicsByClusterResult{
+		ConsumerGroups: consumerGroups,
+	}
+	return result, nil
+}
+
+type AllConsumerGroupsInTopics = map[string][]string
+
+func getConsumerGroupsForAllTopics(ctx context.Context, cluster KafkaCluster) (AllConsumerGroupsInTopics, error) {
+	allGroups, err := cluster.adminClient.DescribeGroups(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return v, nil
+	allTopics := make(map[string][]string)
+
+	for _, group := range allGroups {
+		topics := group.AssignedPartitions().Topics()
+
+		for _, topic := range topics {
+			allTopics[topic] = append(allTopics[topic], group.Group)
+		}
+	}
+
+	return allTopics, nil
 }
+
 func getTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInCluster, error) {
 	topics, err := cluster.adminClient.ListTopics(ctx)
 	if err != nil {
