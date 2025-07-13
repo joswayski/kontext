@@ -2,13 +2,13 @@
 networks:
   kafka_rides_network:
     driver: bridge
-  kafka_analytics_network:
+  kafka_users_network:
     driver: bridge
   kontext_network:
     driver: bridge
 volumes:
   kafka-rides-0: null
-  kafka-analytics-0: null
+  kafka-users-0: null
 
 services:
   api:
@@ -20,7 +20,7 @@ services:
       - "${API_PORT:-4000}:${API_PORT:-4000}"
     networks:
       - kafka_rides_network
-      - kafka_analytics_network
+      - kafka_users_network
       - kontext_network
 
   web:
@@ -58,26 +58,26 @@ services:
       - 19092:19092
       - 19644:9644
 
-  # ANALYTICS Kafka Cluster
-  kafka-analytics-0:
+  # USERS Kafka Cluster
+  kafka-users-0:
     command:
       - redpanda
       - start
       - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:29092
-      - --advertise-kafka-addr internal://kafka-analytics-0:9092,external://localhost:29092
+      - --advertise-kafka-addr internal://kafka-users-0:9092,external://localhost:29092
       - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:28082
-      - --advertise-pandaproxy-addr internal://kafka-analytics-0:8082,external://localhost:28082
-      - --rpc-addr kafka-analytics-0:33146
-      - --advertise-rpc-addr kafka-analytics-0:33146
+      - --advertise-pandaproxy-addr internal://kafka-users-0:8082,external://localhost:28082
+      - --rpc-addr kafka-users-0:33146
+      - --advertise-rpc-addr kafka-users-0:33146
       - --mode dev-container
       - --smp 1
       - --default-log-level=info
     image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kafka-analytics-0
+    container_name: kafka-users-0
     volumes:
-      - kafka-analytics-0:/var/lib/redpanda/data
+      - kafka-users-0:/var/lib/redpanda/data
     networks:
-      - kafka_analytics_network
+      - kafka_users_network
     ports:
       - 28082:28082
       - 29092:29092
@@ -105,24 +105,24 @@ services:
     depends_on:
       - kafka-rides-0
 
-  # ANALYTICS Console
-  console-analytics:
-    container_name: redpanda-console-analytics
+  # USERS Console
+  console-users:
+    container_name: redpanda-console-users
     image: docker.redpanda.com/redpandadata/console:v3.1.2
     networks:
-      - kafka_analytics_network
+      - kafka_users_network
     entrypoint: /bin/sh
     command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
     environment:
       CONFIG_FILEPATH: /tmp/config.yml
       CONSOLE_CONFIG_FILE: |
         kafka:
-          brokers: ["kafka-analytics-0:9092"]
+          brokers: ["kafka-users-0:9092"]
         redpanda:
           adminApi:
             enabled: true
-            urls: ["http://kafka-analytics-0:9644"]
+            urls: ["http://kafka-users-0:9644"]
     ports:
       - 8081:8080
     depends_on:
-      - kafka-analytics-0
+      - kafka-users-0
