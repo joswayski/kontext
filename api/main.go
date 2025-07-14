@@ -12,8 +12,8 @@ import (
 	"time"
 
 	kafka "github.com/joswayski/kontext/api/clients/kafka"
-	config "github.com/joswayski/kontext/api/config"
 	"github.com/joswayski/kontext/api/routes"
+	config "github.com/joswayski/kontext/pkg/config"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 

@@ -8,6 +8,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/twmb/franz-go v1.19.5
 	github.com/twmb/franz-go/pkg/kadm v1.16.0
+	github.com/joswayski/kontext/pkg/config v0.0.0
 )
 
 require (
@@ -39,4 +40,10 @@ require (
 	golang.org/x/text v0.26.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+
+
+replace (
+github.com/joswayski/kontext/pkg/config => ../pkg/config
+
 )

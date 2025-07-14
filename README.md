@@ -18,7 +18,7 @@ docker compose up -d --build
 This will start the following services:
 - Kontext Web app at http://localhost:3000
 - Kontext API at http://localhost:4000
-- Kafka Clusters & Topics to simulate a ridesharing application:
+- Kafka Clusters & Topics to simulate a ridesharing application called **Glide**:
 
 | Cluster       | Broker(s)     |  Admin API    | Console UI    | Topics |
 | ------------- | ------------- | ------------- | ------------- | -------------|
