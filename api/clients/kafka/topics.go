@@ -168,7 +168,7 @@ func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTo
 		TotalSize: 0,
 	}
 
-	// Skip internal topics
+	// This doesn't pull internal topics, we want to ignore them for now
 	listedTopics, topicsErr := cluster.adminClient.ListTopics(ctx)
 	if topicsErr != nil {
 		return GetSizesForEachTopicResult{}, fmt.Errorf("unable to retrieve sizes of topics %s", topicsErr.Error())
@@ -186,7 +186,7 @@ func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTo
 				for _, partitionData := range partitionMap {
 					_, exists := topics[partitionData.Topic]
 					if !exists {
-						// Skip internal topics
+						// Skip internal topics not in the list above
 						continue
 					}
 					finalResult.Topics[partitionData.Topic] += int(partitionData.Size)

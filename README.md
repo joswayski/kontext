@@ -1,6 +1,6 @@
 # Kontext
 
-A tool to automatically visualize the event flows in your Kafka clusters and give you **Kontext** on what consumers actually **do** with the data (in other words, your business logic). 
+A tool to automatically visualize the event flows in your Kafka clusters and give you **kontext** on what consumers actually **do** with the data (in other words, your business logic). 
 
 Nobody likes keeping diagrams or Markdown in sync anyway.
 
