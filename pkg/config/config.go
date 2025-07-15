@@ -22,7 +22,7 @@ type AllKafkaClusterConfigs map[string]KafkaClusterConfig
 
 // Global, app wide config
 type KontextConfig struct {
-	Port                string
+	ApiPort             string
 	KafkaClusterConfigs AllKafkaClusterConfigs
 }
 
@@ -33,19 +33,19 @@ func GetConfig() *KontextConfig {
 	}
 
 	return &KontextConfig{
-		Port:                getPort(),
+		ApiPort:             getApiPort(),
 		KafkaClusterConfigs: getAllKafkaClusterConfigs(),
 	}
 }
 
-const envPort = "API_PORT"
-const defaultPort = "4000"
+const apiPort = "API_PORT"
+const defaultPort = "3001"
 
-func getPort() string {
-	port := os.Getenv(envPort)
+func getApiPort() string {
+	port := os.Getenv(apiPort)
 
 	if port == "" {
-		slog.Warn(fmt.Sprintf("No %s environment variable found, using default port %s", envPort, defaultPort))
+		slog.Warn(fmt.Sprintf("No %s environment variable found, using default apiPort %s", apiPort, defaultPort))
 		return defaultPort
 	}
 

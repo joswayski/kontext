@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	kafka "github.com/joswayski/kontext/api/clients/kafka"
+	kafka "github.com/joswayski/kontext/pkg/kafka"
 )
 
 func (h *Handler) GetClustersHandler(c *gin.Context) {

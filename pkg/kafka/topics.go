@@ -56,20 +56,25 @@ func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId
 
 	wg.Wait()
 
+	finalTopicList := make([]DetailedTopic, 0)
+
 	if allTopicsError != nil {
-		return GetTopicsByClusterResult{}, fmt.Errorf("unable to retrieve topics %s", allTopicsError.Error())
+		return GetTopicsByClusterResult{Topics: finalTopicList}, fmt.Errorf("unable to retrieve topics %s", allTopicsError.Error())
 	}
 
 	if topcisAndConsumerGroupsError != nil {
-		return GetTopicsByClusterResult{}, fmt.Errorf("unable to retrieve consumer groups for topics %s", topcisAndConsumerGroupsError.Error())
+		return GetTopicsByClusterResult{Topics: finalTopicList}, fmt.Errorf("unable to retrieve consumer groups for topics %s", topcisAndConsumerGroupsError.Error())
 	}
 
-	finalTopicList := make([]DetailedTopic, 0)
 	topicCount := 0
 	for _, topic := range allTopics.Topics {
+		consumerGroups := topicsAndConsumerGroups[topic.Name]
+		if consumerGroups == nil {
+			consumerGroups = make([]ConsumerGroupInCluster, 0)
+		}
 		detailedTopic := DetailedTopic{
 			TopicInCluster: topic,
-			ConsumerGroups: topicsAndConsumerGroups[topic.Name],
+			ConsumerGroups: consumerGroups,
 		}
 		finalTopicList = append(finalTopicList, detailedTopic)
 		topicCount += 1
@@ -84,7 +89,7 @@ func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId
 type AllConsumerGroupsInTopics = map[string][]ConsumerGroupInCluster
 
 func getConsumerGroupsForAllTopics(ctx context.Context, cluster KafkaCluster) (AllConsumerGroupsInTopics, error) {
-	allGroups, err := cluster.adminClient.DescribeGroups(ctx)
+	allGroups, err := cluster.AdminClient.DescribeGroups(ctx)
 
 	if err != nil {
 		return nil, err
@@ -157,7 +162,7 @@ type GetSizesForEachTopicResult struct {
 }
 
 func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTopicResult, error) {
-	logDirs, logDirsErr := cluster.adminClient.DescribeAllLogDirs(ctx, nil)
+	logDirs, logDirsErr := cluster.AdminClient.DescribeAllLogDirs(ctx, nil)
 
 	if logDirsErr != nil {
 		return GetSizesForEachTopicResult{}, fmt.Errorf("unable to retrieve sizes of topics %s", logDirsErr.Error())
@@ -168,8 +173,8 @@ func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTo
 		TotalSize: 0,
 	}
 
-	// Skip internal topics
-	listedTopics, topicsErr := cluster.adminClient.ListTopics(ctx)
+	// This doesn't pull internal topics, we want to ignore them for now
+	listedTopics, topicsErr := cluster.AdminClient.ListTopics(ctx)
 	if topicsErr != nil {
 		return GetSizesForEachTopicResult{}, fmt.Errorf("unable to retrieve sizes of topics %s", topicsErr.Error())
 
@@ -178,7 +183,7 @@ func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTo
 
 	for _, brokerLogDirs := range logDirs {
 		if brokerLogDirs.Error() != nil {
-			return GetSizesForEachTopicResult{}, fmt.Errorf("error retrieving log directories for brokers%s: %s", cluster.config.Id, brokerLogDirs.Error())
+			return GetSizesForEachTopicResult{}, fmt.Errorf("error retrieving log directories for brokers%s: %s", cluster.Config.Id, brokerLogDirs.Error())
 		}
 
 		for _, logDir := range brokerLogDirs {
@@ -186,7 +191,7 @@ func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTo
 				for _, partitionData := range partitionMap {
 					_, exists := topics[partitionData.Topic]
 					if !exists {
-						// Skip internal topics
+						// Skip internal topics not in the list above
 						continue
 					}
 					finalResult.Topics[partitionData.Topic] += int(partitionData.Size)
@@ -207,12 +212,12 @@ func CreateTopics(ctx context.Context, clients AllKafkaClusters) {
 	// TODO check if topic exists first
 	slog.Info("Creating topics...")
 	for _, cluster := range clients {
-		_, err := cluster.adminClient.CreateTopics(ctx, 1, 1, nil, topics...)
+		_, err := cluster.AdminClient.CreateTopics(ctx, 1, 1, nil, topics...)
 		if err != nil {
 			slog.Warn("Unable to create topics")
 			continue
 		}
-		slog.Info(fmt.Sprintf("Topics created in %s cluster", cluster.config.Id))
+		slog.Info(fmt.Sprintf("Topics created in %s cluster", cluster.Config.Id))
 	}
 }
 
