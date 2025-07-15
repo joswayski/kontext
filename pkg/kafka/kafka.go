@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/joswayski/kontext/pkg/config"
+	config "github.com/joswayski/kontext/pkg/config"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
@@ -14,8 +14,8 @@ import (
 // The client, admin client, and config for a cluster
 type KafkaCluster struct {
 	Client      *kgo.Client
-	adminClient *kadm.Client
-	config      config.KafkaClusterConfig
+	AdminClient *kadm.Client
+	Config      config.KafkaClusterConfig
 }
 
 // All clusters with their client, admin client, and config
@@ -43,8 +43,8 @@ func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 
 		allClusters[clusterId] = KafkaCluster{
 			Client:      normalClient,
-			adminClient: adminClient,
-			config:      clusterConfig,
+			AdminClient: adminClient,
+			Config:      clusterConfig,
 		}
 	}
 

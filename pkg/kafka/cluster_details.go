@@ -34,7 +34,7 @@ func GetClusterById(ctx context.Context, id string, clients AllKafkaClusters) (G
 	return GetClusterByIdResponse{
 		Metadata:       metadata,
 		ConsumerGroups: consumerGroups,
-		Brokers:        cluster.config.BrokerURLs,
+		Brokers:        cluster.Config.BrokerURLs,
 		Topics:         allTopicData.Topics,
 	}, nil
 }

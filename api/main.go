@@ -11,14 +11,14 @@ import (
 	"syscall"
 	"time"
 
-	kafka "github.com/joswayski/kontext/api/clients/kafka"
 	"github.com/joswayski/kontext/api/routes"
 	config "github.com/joswayski/kontext/pkg/config"
+	kafka "github.com/joswayski/kontext/pkg/kafka"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 func startServer(srv *http.Server, cfg config.KontextConfig) {
-	slog.Info("Starting API server on port " + cfg.Port)
+	slog.Info("Starting API server on port " + cfg.ApiPort)
 	err := srv.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		slog.Error("Error running API server", "error", err)
@@ -133,7 +133,7 @@ func main() {
 	r := routes.GetRoutes(kafkaClusters)
 
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
+		Addr:    ":" + cfg.ApiPort,
 		Handler: r,
 	}
 

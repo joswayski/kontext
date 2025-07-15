@@ -40,7 +40,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	var metaErr error
 	go func() {
 		defer wg.Done()
-		metadata, metaErr = cluster.adminClient.Metadata(ctx)
+		metadata, metaErr = cluster.AdminClient.Metadata(ctx)
 	}()
 
 	// var logDirs kadm.DescribedAllLogDirs
@@ -55,7 +55,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 
 	go func() {
 		defer wg.Done()
-		consumerGroups, consumerGroupsError = cluster.adminClient.ListGroups(ctx)
+		consumerGroups, consumerGroupsError = cluster.AdminClient.ListGroups(ctx)
 	}()
 
 	var topicSizeData GetSizesForEachTopicResult
@@ -70,7 +70,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	if metaErr != nil {
 		msg := fmt.Sprintf("Unable to retrieve metadata: %s. Please check if the cluster is running.", metaErr.Error())
 		return ClusterMetaData{
-			Id:      cluster.config.Id,
+			Id:      cluster.Config.Id,
 			Status:  MetadataStatusError,
 			Message: msg,
 		}
@@ -88,7 +88,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	if consumerGroupsError != nil {
 		msg := fmt.Sprintf("Unable to retrieve consumer groups: %s.", consumerGroupsError.Error())
 		return ClusterMetaData{
-			Id:      cluster.config.Id,
+			Id:      cluster.Config.Id,
 			Status:  MetadataStatusError,
 			Message: msg,
 		}
@@ -97,7 +97,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	if topicSizeError != nil {
 		msg := fmt.Sprintf("Unable to retrieve topic size data: %s.", consumerGroupsError.Error())
 		return ClusterMetaData{
-			Id:      cluster.config.Id,
+			Id:      cluster.Config.Id,
 			Status:  MetadataStatusError,
 			Message: msg,
 		}
@@ -147,7 +147,7 @@ func getMetadataForCluster(ctx context.Context, cluster KafkaCluster) ClusterMet
 	// }
 
 	return ClusterMetaData{
-		Id:                 cluster.config.Id,
+		Id:                 cluster.Config.Id,
 		Status:             MetadataStatusConnected,
 		BrokerCount:        brokerCount,
 		TopicCount:         topicCount,
