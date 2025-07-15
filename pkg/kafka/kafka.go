@@ -60,7 +60,7 @@ func (clusters AllKafkaClusters) Close() {
 			defer wg.Done()
 			slog.Warn(fmt.Sprintf("Shutting down Kafka client for %s cluster", id))
 			cluster.Client.Close()
-			slog.Warn(fmt.Sprintf("Kafka client for %s cluster shut down at", id))
+			slog.Warn(fmt.Sprintf("Kafka client for %s cluster shut down", id))
 		}(id, cluster)
 	}
 

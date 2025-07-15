@@ -17,20 +17,20 @@ volumes:
   kafka-payments-0: null
 
 services:
-  api:
-    build:
-      context: .
-      dockerfile: api/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "${API_PORT:-3001}:${API_PORT:-3001}"
-    networks:
-      - kafka_rides_network
-      - kafka_drivers_network
-      - kafka_users_network
-      - kafka_payments_network
-      - kontext_network
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: api/Dockerfile
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "${API_PORT:-3001}:${API_PORT:-3001}"
+  #   networks:
+  #     - kafka_rides_network
+  #     - kafka_drivers_network
+  #     - kafka_users_network
+  #     - kafka_payments_network
+  #     - kontext_network
 
   glide:
     build:
@@ -48,16 +48,16 @@ services:
       - kontext_network
 
 
-  web:
-    build:
-      context: .
-      dockerfile: web/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
-    networks:
-      - kontext_network
+  # web:
+  #   build:
+  #     context: .
+  #     dockerfile: web/Dockerfile
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
+  #   networks:
+  #     - kontext_network
 
   # RIDES Kafka Cluster
   kafka-rides-0:
