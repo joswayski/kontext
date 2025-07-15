@@ -56,20 +56,25 @@ func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId
 
 	wg.Wait()
 
+	finalTopicList := make([]DetailedTopic, 0)
+
 	if allTopicsError != nil {
-		return GetTopicsByClusterResult{}, fmt.Errorf("unable to retrieve topics %s", allTopicsError.Error())
+		return GetTopicsByClusterResult{Topics: finalTopicList}, fmt.Errorf("unable to retrieve topics %s", allTopicsError.Error())
 	}
 
 	if topcisAndConsumerGroupsError != nil {
-		return GetTopicsByClusterResult{}, fmt.Errorf("unable to retrieve consumer groups for topics %s", topcisAndConsumerGroupsError.Error())
+		return GetTopicsByClusterResult{Topics: finalTopicList}, fmt.Errorf("unable to retrieve consumer groups for topics %s", topcisAndConsumerGroupsError.Error())
 	}
 
-	finalTopicList := make([]DetailedTopic, 0)
 	topicCount := 0
 	for _, topic := range allTopics.Topics {
+		consumerGroups := topicsAndConsumerGroups[topic.Name]
+		if consumerGroups == nil {
+			consumerGroups = make([]ConsumerGroupInCluster, 0)
+		}
 		detailedTopic := DetailedTopic{
 			TopicInCluster: topic,
-			ConsumerGroups: topicsAndConsumerGroups[topic.Name],
+			ConsumerGroups: consumerGroups,
 		}
 		finalTopicList = append(finalTopicList, detailedTopic)
 		topicCount += 1

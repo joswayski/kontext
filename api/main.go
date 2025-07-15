@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -52,16 +51,6 @@ func main() {
 		Addr:    ":" + cfg.ApiPort,
 		Handler: r,
 	}
-
-	ctx := context.Background()
-
-	var topicWg sync.WaitGroup
-	topicWg.Add(1)
-	go func() {
-		defer topicWg.Done()
-		kafka.CreateTopics(ctx, kafkaClusters)
-	}()
-	topicWg.Wait()
 
 	go startServer(srv, *cfg)
 
