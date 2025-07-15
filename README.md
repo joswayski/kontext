@@ -37,7 +37,6 @@ This will create...
 For simplicity, the **web** app and the **api** are run outside of Docker
 
 - To start the web app: `cd web` && `npm run dev` at http://localhost:3000
-
 - To start the API: `cd api` && `go run .` at at http://localhost:3001
 
 
