@@ -46,5 +46,4 @@ require (
 replace (
 	github.com/joswayski/kontext/pkg/config => ../pkg/config
 	github.com/joswayski/kontext/pkg/kafka => ../pkg/kafka
-
 )
