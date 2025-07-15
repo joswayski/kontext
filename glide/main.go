@@ -84,24 +84,26 @@ func main() {
 						}
 					}
 
-					sampleMessage := topicConfig.CreateMessage()
-					msg, err := json.Marshal(sampleMessage)
-					if err != nil {
-						slog.Warn(fmt.Sprintf("unable to marshall message: %v - %s", sampleMessage, err.Error()))
-					}
-					record := &kgo.Record{Topic: topicName, Value: []byte(msg)}
-
 					for {
 
-						// Loop forever
-						clusterConfig.Client.Produce(context.Background(), record, func(*kgo.Record, error) {
-							if err != nil {
-								slog.Warn(fmt.Sprintf("failed to produce message into topic %s in cluster %s: %v with error: %s", topicName, clusterName, sampleMessage, err.Error()))
-							} else {
-								slog.Info(fmt.Sprintf("%s produced succesfully", topicName))
-							}
-						})
+						sampleMessage := topicConfig.CreateMessage()
+						msg, err := json.Marshal(sampleMessage)
+						if err != nil {
+							slog.Warn(fmt.Sprintf("unable to marshall message: %v - %s", sampleMessage, err.Error()))
+						} else {
+							record := &kgo.Record{Topic: topicName, Value: []byte(msg)}
+
+							clusterConfig.Client.Produce(context.Background(), record, func(r *kgo.Record, err error) {
+								if err != nil {
+									slog.Warn(fmt.Sprintf("failed to produce message into topic %s in cluster %s: %v with error: %s", topicName, clusterName, sampleMessage, err.Error()))
+								} else {
+									slog.Info(fmt.Sprintf("%s produced succesfully - %s", topicName, sampleMessage))
+								}
+							})
+						}
+
 						time.Sleep(time.Duration(1000/topicConfig.MessageRate) * time.Millisecond)
+
 					}
 				}(topicName, topicConfig, topicsInCluster, clusterConfig)
 			}
