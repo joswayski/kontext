@@ -43,7 +43,6 @@ func awaitShutdownSignal(srv *http.Server) {
 func main() {
 	cfg := config.GetConfig()
 	kafkaClusters := kafka.GetKafkaClustersFromConfig(*cfg)
-	defer kafkaClusters.Close()
 
 	r := routes.GetRoutes(kafkaClusters)
 
@@ -55,4 +54,5 @@ func main() {
 	go startServer(srv, *cfg)
 
 	awaitShutdownSignal(srv)
+	kafkaClusters.Close()
 }
