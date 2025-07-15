@@ -25,7 +25,7 @@ type ClustersResponse = {
   clusters: ClusterMetadata[];
   cluster_count: number;
 };
-const apiUrl = process.env.API_URL || "http://localhost:4000";
+const apiUrl = process.env.API_URL || "http://localhost:3001";
 export async function loader() {
   console.log(`SENDING REQUEST TO ${apiUrl}`);
   const res = await fetch(`${apiUrl}/api/v1/clusters`);

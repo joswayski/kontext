@@ -39,7 +39,7 @@ func GetConfig() *KontextConfig {
 }
 
 const apiPort = "API_PORT"
-const defaultPort = "4000"
+const defaultPort = "3001"
 
 func getApiPort() string {
 	port := os.Getenv(apiPort)

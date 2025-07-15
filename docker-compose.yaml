@@ -19,11 +19,12 @@ volumes:
 services:
   api:
     build:
-      context: ./api
+      context: .
+      dockerfile: api/Dockerfile
     env_file:
       - .env
     ports:
-      - "${API_PORT:-4000}:${API_PORT:-4000}"
+      - "${API_PORT:-3001}:${API_PORT:-3001}"
     networks:
       - kafka_rides_network
       - kafka_drivers_network
@@ -31,9 +32,26 @@ services:
       - kafka_payments_network
       - kontext_network
 
+  glide:
+    build:
+      context: .
+      dockerfile: glide/Dockerfile
+    env_file:
+      - .env
+    # ports:
+    #   - "5000:5000"
+    networks:
+      - kafka_rides_network
+      - kafka_drivers_network
+      - kafka_users_network
+      - kafka_payments_network
+      - kontext_network
+
+
   web:
     build:
-      context: ./web
+      context: .
+      dockerfile: web/Dockerfile
     env_file:
       - .env
     ports:
@@ -205,7 +223,7 @@ services:
             enabled: true
             urls: ["http://kafka-drivers-0:9644"]
     ports:
-      - 8083:8080
+      - 8082:8080
     depends_on:
       - kafka-drivers-0
 
@@ -228,6 +246,6 @@ services:
             enabled: true
             urls: ["http://kafka-payments-0:9644"]
     ports:
-      - 8084:8080
+      - 8083:8080
     depends_on:
       - kafka-payments-0
