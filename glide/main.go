@@ -18,7 +18,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-func runGlide(kafkaClustersAndClients kafka.AllKafkaClusters) {
+func runProducers(kafkaClustersAndClients kafka.AllKafkaClusters) {
 	for clusterName, clusterDataConfig := range glideConfig.ClusterDataConfig {
 		go func(clusterName string, clusterDataConfig glideConfig.ClusterData) {
 			clusterConfig, exists := kafkaClustersAndClients[clusterName]
@@ -59,7 +59,6 @@ func runGlide(kafkaClustersAndClients kafka.AllKafkaClusters) {
 					}
 
 					for {
-
 						sampleMessage := topicConfig.CreateMessage()
 						msg, err := json.Marshal(sampleMessage)
 						if err != nil {
@@ -86,6 +85,44 @@ func runGlide(kafkaClustersAndClients kafka.AllKafkaClusters) {
 
 }
 
+func runConsumers(kafkaClustersAndClients kafka.AllKafkaClusters) {
+	for clusterName, clusterDataConfig := range glideConfig.ClusterDataConfig {
+		go func(clusterName string, clusterDataConfig glideConfig.ClusterData) {
+			clusterConfig, exists := kafkaClustersAndClients[clusterName]
+			if !exists {
+				log.Fatalf("the cluster %s was configured in the Glide application but was not present in the environment variables", clusterName)
+			}
+
+			topicsInCluster, err := clusterConfig.AdminClient.ListTopics(context.Background())
+
+			if err != nil {
+				log.Fatalf("unable to retrieve topic metadata in %s cluster with error: %s", clusterName, err.Error())
+			}
+
+			for topicName, topicConfig := range clusterDataConfig.Topics {
+				go func(topicName string, topicConfig glideConfig.TopicConfig, topicsInCluster kadm.TopicDetails, clusterConfig kafka.KafkaCluster) {
+					clusterConfig.Client.AddConsumeTopics(topicName)
+
+					for {
+						fetches := clusterConfig.Client.PollFetches(context.Background())
+						if errs := fetches.Errors(); len(errs) > 0 {
+							slog.Warn(fmt.Sprintf("error when polling for messages in topic %s in cluster %s: %s", topicName, clusterName, errs[0].Err.Error()))
+						}
+
+						iter := fetches.RecordIter()
+						for !iter.Done() {
+							record := iter.Next()
+							time.Sleep(time.Duration(80 * time.Millisecond))
+							fmt.Println("Consumed message!", string(record.Value))
+						}
+					}
+
+				}(topicName, topicConfig, topicsInCluster, clusterConfig)
+			}
+		}(clusterName, clusterDataConfig)
+	}
+}
+
 // Eventually we will move this to it's own repo but for now, its just a folder inside the main Kontext repo
 // This should simulate a ridesharing app called Glide which sends events into the clusters defined in /config/config.go
 func main() {
@@ -109,7 +146,8 @@ func main() {
 	globalConfig := globalConfig.GetConfig()
 	kafkaClustersAndClients := kafka.GetKafkaClustersFromConfig(*globalConfig)
 
-	go runGlide(kafkaClustersAndClients)
+	go runProducers(kafkaClustersAndClients)
+	go runConsumers(kafkaClustersAndClients)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

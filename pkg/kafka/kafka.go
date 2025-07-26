@@ -1,4 +1,4 @@
-package clients
+package kafka
 
 import (
 	"fmt"
@@ -27,11 +27,12 @@ func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 
 	for clusterId, clusterConfig := range cfg.KafkaClusterConfigs {
 		groupId := fmt.Sprintf("kontext-%s-consumer", clusterConfig.Id)
+
+		// Create a single client for both producing and consuming
 		normalClient, err := kgo.NewClient(
 			kgo.SeedBrokers(clusterConfig.BrokerURLs...),
 			kgo.ConsumerGroup(groupId),
 			kgo.ClientID(groupId),
-			kgo.ConsumeTopics(topics...),
 		)
 		if err != nil {
 			log.Fatalf("Unable to create Kafka client for %s cluster: %s", clusterId, err)
@@ -39,7 +40,7 @@ func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 
 		adminClient := kadm.NewClient(normalClient)
 
-		slog.Info(fmt.Sprintf("Created clients for %s cluster", clusterId))
+		slog.Info(fmt.Sprintf("Created client for %s cluster", clusterId))
 
 		allClusters[clusterId] = KafkaCluster{
 			Client:      normalClient,
