@@ -24,7 +24,7 @@ services:
       - kafka-payments
       - kafka-drivers
 
-  # TODO - For simplicity, we run these outside of Docker compose
+  # TODO - For simplicity, we run these ouside of Docker compose
   # web:
   #   build:
   #     context: .
@@ -59,7 +59,7 @@ services:
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       ALLOW_PLAINTEXT_LISTENER: yes
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true  # For ease in MVP
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: false
       KAFKA_ENABLE_JMX_EXPORTER: yes
       KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=19644 -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.password.file=/opt/bitnami/kafka/config/jmx_password -Dcom.sun.management.jmxremote.access.file=/opt/bitnami/kafka/config/jmx_access
       JMX_EXPORTER_PORT: 19644
@@ -68,8 +68,8 @@ services:
     volumes:
       - kafka-rides-data:/bitnami/kafka
       # Add these files for JMX auth (create them with username:password and roles)
-      - ./jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
-      - ./jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
+      - ./jmx/jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
+      - ./jmx/jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
 
   # USERS Kafka Cluster
   kafka-users:
@@ -88,7 +88,7 @@ services:
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       ALLOW_PLAINTEXT_LISTENER: yes
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: false
       KAFKA_ENABLE_JMX_EXPORTER: yes
       KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=29644 -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.password.file=/opt/bitnami/kafka/config/jmx_password -Dcom.sun.management.jmxremote.access.file=/opt/bitnami/kafka/config/jmx_access
       JMX_EXPORTER_PORT: 29644
@@ -96,8 +96,8 @@ services:
       KAFKA_JMX_PASSWORD: secret
     volumes:
       - kafka-users-data:/bitnami/kafka
-      - ./jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
-      - ./jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
+      - ./jmx/jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
+      - ./jmx/jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
 
   # DRIVERS Kafka Cluster
   kafka-drivers:
@@ -116,6 +116,7 @@ services:
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: false
       KAFKA_ENABLE_JMX_EXPORTER: yes
       KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=39644 -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.password.file=/opt/bitnami/kafka/config/jmx_password -Dcom.sun.management.jmxremote.access.file=/opt/bitnami/kafka/config/jmx_access
       JMX_EXPORTER_PORT: 39644
@@ -123,8 +124,8 @@ services:
       KAFKA_JMX_PASSWORD: secret
     volumes:
       - kafka-drivers-data:/bitnami/kafka
-      - ./jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
-      - ./jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
+      - ./jmx/jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
+      - ./jmx/jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
 
   # PAYMENTS Kafka Cluster
   kafka-payments:
@@ -143,6 +144,7 @@ services:
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: false
       KAFKA_ENABLE_JMX_EXPORTER: yes
       KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=49644 -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.password.file=/opt/bitnami/kafka/config/jmx_password -Dcom.sun.management.jmxremote.access.file=/opt/bitnami/kafka/config/jmx_access
       JMX_EXPORTER_PORT: 49644
@@ -150,5 +152,5 @@ services:
       KAFKA_JMX_PASSWORD: secret
     volumes:
       - kafka-payments-data:/bitnami/kafka
-      - ./jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
-      - ./jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
+      - ./jmx/jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
+      - ./jmx/jmx_access:/opt/bitnami/kafka/config/jmx_access:ro

@@ -19,6 +19,12 @@ Nobody likes keeping diagrams or Markdown in sync anyway.
 ```bash
 cp .env.example .env
 
+# Create JMX auth files in ./jmx (required for metrics with auth enabled; matches defaults in .env)
+mkdir jmx
+echo "admin secret" > jmx/jmx_password
+echo "admin readwrite" > jmx/jmx_access
+chmod 400 jmx/jmx_password jmx/jmx_access
+
 docker compose up -d --build
 ```
 
@@ -42,10 +48,12 @@ For simplicity, the **web** app and the **api** are run outside of Docker
 
 ### Notes
 - If running *inside* of Docker, make sure to update the URLs in your `.env` to point to the internal container names (e.g., kafka-rides:9092) instead. See [docker-compose.yaml](docker-compose.yaml) for more info.
-- The clusters are running Apache Kafka (in KRaft mode) with JMX enabled for metrics extraction.
+- The clusters are running Apache Kafka (KRaft mode) with JMX enabled for metrics extraction. Topics are auto-created on first produce (via KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true) for demo simplicity; in prod, manage topics manually.
 - To extract metrics, ensure your .env includes JMX URLs for each cluster, e.g.:
   ```
   KAFKA_RIDES_JMX_URL=service:jmx:rmi:///jndi/rmi://localhost:19644/jmxrmi
   # Repeat for other clusters. In prod, this would point to your broker's JMX endpoint (enable JMX on brokers if not already).
   # Optional: KAFKA_RIDES_JMX_USERNAME=admin, KAFKA_RIDES_JMX_PASSWORD=secret (if auth is enabled).
   ```
+- Metrics are queried via JMX in the API code—see pkg/kafka/producers.go for details. This works across Apache Kafka, Confluent, AWS MSK, etc., as long as JMX is exposed.
+- JMX auth files (jmx/jmx_password and jmx/jmx_access) are mounted for security. If you don't need auth, edit docker-compose.yaml to disable it in KAFKA_JMX_OPTS and remove the volumes.
