@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 )
 
@@ -74,6 +75,11 @@ func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId
 		finalTopicList = append(finalTopicList, detailedTopic)
 		topicCount += 1
 	}
+
+	// Sort the topics by name
+	sort.Slice(finalTopicList, func(i, j int) bool {
+		return finalTopicList[i].Name < finalTopicList[j].Name
+	})
 
 	return GetTopicsByClusterResult{
 		Topics:     finalTopicList,

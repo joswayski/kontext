@@ -52,6 +52,12 @@ services:
       - kafka_users_network
       - kafka_payments_network
       - kontext_network
+    depends_on:
+      - kafka-users-0
+      - kafka-rides-0
+      - kafka-payments-0
+      - kafka-drivers-0
+
 
 
   # web:

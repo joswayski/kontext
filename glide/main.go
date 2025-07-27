@@ -93,31 +93,22 @@ func runConsumers(kafkaClustersAndClients kafka.AllKafkaClusters) {
 				log.Fatalf("the cluster %s was configured in the Glide application but was not present in the environment variables", clusterName)
 			}
 
-			topicsInCluster, err := clusterConfig.AdminClient.ListTopics(context.Background())
-
-			if err != nil {
-				log.Fatalf("unable to retrieve topic metadata in %s cluster with error: %s", clusterName, err.Error())
+			for topicName := range clusterDataConfig.Topics {
+				clusterConfig.Client.AddConsumeTopics(topicName)
 			}
 
-			for topicName, topicConfig := range clusterDataConfig.Topics {
-				go func(topicName string, topicConfig glideConfig.TopicConfig, topicsInCluster kadm.TopicDetails, clusterConfig kafka.KafkaCluster) {
-					clusterConfig.Client.AddConsumeTopics(topicName)
+			for {
+				fetches := clusterConfig.Client.PollFetches(context.Background())
+				if errs := fetches.Errors(); len(errs) > 0 {
+					slog.Warn(fmt.Sprintf("error when polling for messages in topic %s in cluster %s: %s", errs[0].Topic, clusterName, errs[0].Err.Error()))
+				}
 
-					for {
-						fetches := clusterConfig.Client.PollFetches(context.Background())
-						if errs := fetches.Errors(); len(errs) > 0 {
-							slog.Warn(fmt.Sprintf("error when polling for messages in topic %s in cluster %s: %s", topicName, clusterName, errs[0].Err.Error()))
-						}
-
-						iter := fetches.RecordIter()
-						for !iter.Done() {
-							record := iter.Next()
-							time.Sleep(time.Duration(80 * time.Millisecond))
-							fmt.Println("Consumed message!", string(record.Value))
-						}
-					}
-
-				}(topicName, topicConfig, topicsInCluster, clusterConfig)
+				iter := fetches.RecordIter()
+				for !iter.Done() {
+					record := iter.Next()
+					time.Sleep(time.Duration(80 * time.Millisecond))
+					slog.Info(fmt.Sprintf("Consumed message from %s topic: %s", record.Topic, string(record.Value)))
+				}
 			}
 		}(clusterName, clusterDataConfig)
 	}
