@@ -1,14 +1,10 @@
-package clients
+package kafka
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
+	"sort"
 	"sync"
-
-	"github.com/brianvoe/gofakeit"
-	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 type TopicInCluster struct {
@@ -79,6 +75,11 @@ func GetTopicsByCluster(ctx context.Context, clients AllKafkaClusters, clusterId
 		finalTopicList = append(finalTopicList, detailedTopic)
 		topicCount += 1
 	}
+
+	// Sort the topics by name
+	sort.Slice(finalTopicList, func(i, j int) bool {
+		return finalTopicList[i].Name < finalTopicList[j].Name
+	})
 
 	return GetTopicsByClusterResult{
 		Topics:     finalTopicList,
@@ -202,61 +203,4 @@ func GetTopicSizes(ctx context.Context, cluster KafkaCluster) (GetSizesForEachTo
 	}
 
 	return finalResult, nil
-}
-
-// TODO - temporary - will cleanup in a separate PR
-var topics = []string{"orders", "users"}
-
-// TODO - temporary - will cleanup in a separate PR
-func CreateTopics(ctx context.Context, clients AllKafkaClusters) {
-	// TODO check if topic exists first
-	slog.Info("Creating topics...")
-	for _, cluster := range clients {
-		_, err := cluster.AdminClient.CreateTopics(ctx, 1, 1, nil, topics...)
-		if err != nil {
-			slog.Warn("Unable to create topics")
-			continue
-		}
-		slog.Info(fmt.Sprintf("Topics created in %s cluster", cluster.Config.Id))
-	}
-}
-
-// TODO - temporary - will cleanup in a separate PR
-type SampleMessage struct {
-	MessageType string      `json:"message_type"`
-	Data        interface{} `json:"data"`
-}
-
-// TODO - temporary - will cleanup in a separate PR
-func SeedTopics(ctx context.Context, clients AllKafkaClusters) {
-	slog.Info("Seeding topics...")
-
-	for _, topic := range topics {
-		for _, cluster := range clients {
-			sampleMsg := SampleMessage{
-				MessageType: gofakeit.Word(),
-				Data: map[string]string{
-					"name": gofakeit.Name(),
-				},
-			}
-
-			jsonData, err := json.Marshal(sampleMsg)
-			if err != nil {
-				slog.Error("Failed to marshal message", "error", err)
-				continue
-			}
-
-			cluster.Client.Produce(ctx, &kgo.Record{
-				Topic: topic,
-				Key:   []byte(gofakeit.UUID()),
-				Value: jsonData,
-			}, func(r *kgo.Record, err error) {
-				if err != nil {
-					slog.Error("Failed to produce message", "error", err, "topic", topic)
-				} else {
-					slog.Info("Message produced successfully", "topic", topic)
-				}
-			})
-		}
-	}
 }

@@ -38,6 +38,12 @@ services:
       dockerfile: glide/Dockerfile
     env_file:
       - .env
+    environment:
+      # TODO - this is here to not deal with multiple .env files for now in the Glide app vs everywhere else
+      - KAFKA_RIDES_BROKER_URL=kafka-rides-0:9092
+      - KAFKA_USERS_BROKER_URL=kafka-users-0:9092
+      - KAFKA_DRIVERS_BROKER_URL=kafka-drivers-0:9092
+      - KAFKA_PAYMENTS_BROKER_URL=kafka-payments-0:9092
     # ports:
     #   - "5000:5000"
     networks:
@@ -46,6 +52,12 @@ services:
       - kafka_users_network
       - kafka_payments_network
       - kontext_network
+    depends_on:
+      - kafka-users-0
+      - kafka-rides-0
+      - kafka-payments-0
+      - kafka-drivers-0
+
 
 
   # web:
