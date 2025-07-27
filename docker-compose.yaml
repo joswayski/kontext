@@ -1,263 +1,154 @@
-# Redpanda Dockerfile template from https://docs.redpanda.com/redpanda-labs/docker-compose/single-broker/
-networks:
-  kafka_rides_network:
-    driver: bridge
-  kafka_users_network:
-    driver: bridge
-  kafka_drivers_network:
-    driver: bridge
-  kafka_payments_network:
-    driver: bridge
-  kontext_network:
-    driver: bridge
+# Simplified Kafka setup with multiple independent single-node clusters (one per domain: rides, users, drivers, payments).
+# Each is a KRaft-mode Kafka broker (no ZooKeeper) with JMX enabled for metrics querying.
+# Networks: Removed all custom networks for simplicity. All services join the default Docker Compose network automatically.
+# Glide: Runs inside Docker but uses host network mode to connect via localhost ports (like the external API).
+# This allows Glide to use host's localhost:19092 etc., without internal container resolution.
+# Env: Removed env_file and most environment vars from Glide for simplicity—set them on host or via docker run if needed.
+
 volumes:
-  kafka-rides-0: null
-  kafka-users-0: null
-  kafka-drivers-0: null
-  kafka-payments-0: null
+  kafka-rides-data: null
+  kafka-users-data: null
+  kafka-drivers-data: null
+  kafka-payments-data: null
 
 services:
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: api/Dockerfile
-  #   env_file:
-  #     - .env
-  #   ports:
-  #     - "${API_PORT:-3001}:${API_PORT:-3001}"
-  #   networks:
-  #     - kafka_rides_network
-  #     - kafka_drivers_network
-  #     - kafka_users_network
-  #     - kafka_payments_network
-  #     - kontext_network
 
   glide:
     build:
       context: .
       dockerfile: glide/Dockerfile
-    env_file:
-      - .env
-    environment:
-      # TODO - this is here to not deal with multiple .env files for now in the Glide app vs everywhere else
-      - KAFKA_RIDES_BROKER_URL=kafka-rides-0:9092
-      - KAFKA_USERS_BROKER_URL=kafka-users-0:9092
-      - KAFKA_DRIVERS_BROKER_URL=kafka-drivers-0:9092
-      - KAFKA_PAYMENTS_BROKER_URL=kafka-payments-0:9092
-    # ports:
-    #   - "5000:5000"
-    networks:
-      - kafka_rides_network
-      - kafka_drivers_network
-      - kafka_users_network
-      - kafka_payments_network
-      - kontext_network
+    network_mode: host  # Uses host network to connect via localhost ports (e.g., localhost:19092)
     depends_on:
-      - kafka-users-0
-      - kafka-rides-0
-      - kafka-payments-0
-      - kafka-drivers-0
+      - kafka-users
+      - kafka-rides
+      - kafka-payments
+      - kafka-drivers
 
-
-
+  # TODO - For simplicity, we run these outside of Docker compose
   # web:
   #   build:
   #     context: .
   #     dockerfile: web/Dockerfile
-  #   env_file:
-  #     - .env
   #   ports:
   #     - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
-  #   networks:
-  #     - kontext_network
+  #   network_mode: host  # Optional if you want to run web inside
+
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: api/Dockerfile
+  #   ports:
+  #     - "${API_PORT:-3001}:${API_PORT:-3001}"
+  #   network_mode: host  # Optional if you want to run api inside
+
 
   # RIDES Kafka Cluster
-  kafka-rides-0:
-    command:
-      - redpanda
-      - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr internal://kafka-rides-0:9092,external://localhost:19092
-      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
-      - --advertise-pandaproxy-addr internal://kafka-rides-0:8082,external://localhost:18082
-      - --rpc-addr kafka-rides-0:33145
-      - --advertise-rpc-addr kafka-rides-0:33145
-      - --mode dev-container
-      - --smp 1
-      - --default-log-level=info
-    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kafka-rides-0
-    volumes:
-      - kafka-rides-0:/var/lib/redpanda/data
-    networks:
-      - kafka_rides_network
+  kafka-rides:
+    image: bitnami/kafka:3.8.0  # Modern Kafka with KRaft support
+    container_name: kafka-rides
     ports:
-      - 18082:18082
-      - 19092:19092
-      - 19644:9644
-
+      - 19092:9092  # External Kafka port (matches original Redpanda)
+      - 19644:19644  # JMX port
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093  # Updated for localhost (since no custom networks)
+      KAFKA_KRAFT_CLUSTER_ID: 1z2x3c4v5b6n7m8k9l0p
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:19092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true  # For ease in MVP
+      KAFKA_ENABLE_JMX_EXPORTER: yes
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=19644 -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.password.file=/opt/bitnami/kafka/config/jmx_password -Dcom.sun.management.jmxremote.access.file=/opt/bitnami/kafka/config/jmx_access
+      JMX_EXPORTER_PORT: 19644
+      KAFKA_JMX_USERNAME: admin  # Default username for JMX auth (enable in .env)
+      KAFKA_JMX_PASSWORD: secret  # Default password (change in prod; enable in .env)
+    volumes:
+      - kafka-rides-data:/bitnami/kafka
+      # Add these files for JMX auth (create them with username:password and roles)
+      - ./jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
+      - ./jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
 
   # USERS Kafka Cluster
-  kafka-users-0:
-    command:
-      - redpanda
-      - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:29092
-      - --advertise-kafka-addr internal://kafka-users-0:9092,external://localhost:29092
-      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:28082
-      - --advertise-pandaproxy-addr internal://kafka-users-0:8082,external://localhost:28082
-      - --rpc-addr kafka-users-0:33146
-      - --advertise-rpc-addr kafka-users-0:33146
-      - --mode dev-container
-      - --smp 1
-      - --default-log-level=info
-    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kafka-users-0
-    volumes:
-      - kafka-users-0:/var/lib/redpanda/data
-    networks:
-      - kafka_users_network
+  kafka-users:
+    image: bitnami/kafka:3.8.0
+    container_name: kafka-users
     ports:
-      - 28082:28082
-      - 29092:29092
-      - 29644:9644
+      - 29092:9092
+      - 29644:29644  # JMX port
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_KRAFT_CLUSTER_ID: a1b2c3d4e5f6g7h8i9j0
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_ENABLE_JMX_EXPORTER: yes
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=29644 -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.password.file=/opt/bitnami/kafka/config/jmx_password -Dcom.sun.management.jmxremote.access.file=/opt/bitnami/kafka/config/jmx_access
+      JMX_EXPORTER_PORT: 29644
+      KAFKA_JMX_USERNAME: admin
+      KAFKA_JMX_PASSWORD: secret
+    volumes:
+      - kafka-users-data:/bitnami/kafka
+      - ./jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
+      - ./jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
 
   # DRIVERS Kafka Cluster
-  kafka-drivers-0:
-    command:
-      - redpanda
-      - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:39092
-      - --advertise-kafka-addr internal://kafka-drivers-0:9092,external://localhost:39092
-      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:38082
-      - --advertise-pandaproxy-addr internal://kafka-drivers-0:8082,external://localhost:38082
-      - --rpc-addr kafka-drivers-0:33145
-      - --advertise-rpc-addr kafka-drivers-0:33145
-      - --mode dev-container
-      - --smp 1
-      - --default-log-level=info
-    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kafka-drivers-0
-    volumes:
-      - kafka-drivers-0:/var/lib/redpanda/data
-    networks:
-      - kafka_drivers_network
+  kafka-drivers:
+    image: bitnami/kafka:3.8.0
+    container_name: kafka-drivers
     ports:
-      - 38082:38082
-      - 39092:39092
-      - 39644:9644
+      - 39092:9092
+      - 39644:39644  # JMX port
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_KRAFT_CLUSTER_ID: q1w2e3r4t5y6u7i8o9p0
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:39092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_ENABLE_JMX_EXPORTER: yes
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=39644 -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.password.file=/opt/bitnami/kafka/config/jmx_password -Dcom.sun.management.jmxremote.access.file=/opt/bitnami/kafka/config/jmx_access
+      JMX_EXPORTER_PORT: 39644
+      KAFKA_JMX_USERNAME: admin
+      KAFKA_JMX_PASSWORD: secret
+    volumes:
+      - kafka-drivers-data:/bitnami/kafka
+      - ./jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
+      - ./jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
 
   # PAYMENTS Kafka Cluster
-  kafka-payments-0:
-    command:
-      - redpanda
-      - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:49092
-      - --advertise-kafka-addr internal://kafka-payments-0:9092,external://localhost:49092
-      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:48082
-      - --advertise-pandaproxy-addr internal://kafka-payments-0:8082,external://localhost:48082
-      - --rpc-addr kafka-payments-0:33145
-      - --advertise-rpc-addr kafka-payments-0:33145
-      - --mode dev-container
-      - --smp 1
-      - --default-log-level=info
-    image: docker.redpanda.com/redpandadata/redpanda:v25.1.5
-    container_name: kafka-payments-0
+  kafka-payments:
+    image: bitnami/kafka:3.8.0
+    container_name: kafka-payments
+    ports:
+      - 49092:9092
+      - 49644:49644  # JMX port
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_KRAFT_CLUSTER_ID: z1x2c3v4b5n6m7k8l9p0
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:49092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_ENABLE_JMX_EXPORTER: yes
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=49644 -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.password.file=/opt/bitnami/kafka/config/jmx_password -Dcom.sun.management.jmxremote.access.file=/opt/bitnami/kafka/config/jmx_access
+      JMX_EXPORTER_PORT: 49644
+      KAFKA_JMX_USERNAME: admin
+      KAFKA_JMX_PASSWORD: secret
     volumes:
-      - kafka-payments-0:/var/lib/redpanda/data
-    networks:
-      - kafka_payments_network
-    ports:
-      - 48082:48082
-      - 49092:49092
-      - 49644:9644
-
-  # RIDES Console
-  console-rides:
-    container_name: redpanda-console-rides
-    image: docker.redpanda.com/redpandadata/console:v3.1.2
-    networks:
-      - kafka_rides_network
-    entrypoint: /bin/sh
-    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
-    environment:
-      CONFIG_FILEPATH: /tmp/config.yml
-      CONSOLE_CONFIG_FILE: |
-        kafka:
-          brokers: ["kafka-rides-0:9092"]
-        redpanda:
-          adminApi:
-            enabled: true
-            urls: ["http://kafka-rides-0:9644"]
-    ports:
-      - 8080:8080
-    depends_on:
-      - kafka-rides-0
-
-  # USERS Console
-  console-users:
-    container_name: redpanda-console-users
-    image: docker.redpanda.com/redpandadata/console:v3.1.2
-    networks:
-      - kafka_users_network
-    entrypoint: /bin/sh
-    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
-    environment:
-      CONFIG_FILEPATH: /tmp/config.yml
-      CONSOLE_CONFIG_FILE: |
-        kafka:
-          brokers: ["kafka-users-0:9092"]
-        redpanda:
-          adminApi:
-            enabled: true
-            urls: ["http://kafka-users-0:9644"]
-    ports:
-      - 8081:8080
-    depends_on:
-      - kafka-users-0
-
-
-  # DRIVERS Console
-  console-drivers:
-    container_name: redpanda-console-drivers
-    image: docker.redpanda.com/redpandadata/console:v3.1.2
-    networks:
-      - kafka_drivers_network
-    entrypoint: /bin/sh
-    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
-    environment:
-      CONFIG_FILEPATH: /tmp/config.yml
-      CONSOLE_CONFIG_FILE: |
-        kafka:
-          brokers: ["kafka-drivers-0:9092"]
-        redpanda:
-          adminApi:
-            enabled: true
-            urls: ["http://kafka-drivers-0:9644"]
-    ports:
-      - 8082:8080
-    depends_on:
-      - kafka-drivers-0
-
-
-  # PAYMENTS Console
-  console-payments:
-    container_name: redpanda-console-payments
-    image: docker.redpanda.com/redpandadata/console:v3.1.2
-    networks:
-      - kafka_payments_network
-    entrypoint: /bin/sh
-    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
-    environment:
-      CONFIG_FILEPATH: /tmp/config.yml
-      CONSOLE_CONFIG_FILE: |
-        kafka:
-          brokers: ["kafka-payments-0:9092"]
-        redpanda:
-          adminApi:
-            enabled: true
-            urls: ["http://kafka-payments-0:9644"]
-    ports:
-      - 8083:8080
-    depends_on:
-      - kafka-payments-0
+      - kafka-payments-data:/bitnami/kafka
+      - ./jmx_password:/opt/bitnami/kafka/config/jmx_password:ro
+      - ./jmx_access:/opt/bitnami/kafka/config/jmx_access:ro
