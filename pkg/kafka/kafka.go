@@ -63,7 +63,7 @@ func (clusters AllKafkaClusters) Close(ctx context.Context) error {
 
 		go func(id string, cluster KafkaCluster) {
 			defer wg.Done()
-			slog.Warn(fmt.Sprintf("Shutting down Kafka client for %s cluster", id))
+			slog.Info(fmt.Sprintf("Shutting down Kafka client for %s cluster", id))
 
 			done := make(chan struct{})
 			go func() {
@@ -74,7 +74,7 @@ func (clusters AllKafkaClusters) Close(ctx context.Context) error {
 			select {
 			case <-done:
 				// Happy path
-				slog.Debug(fmt.Sprintf("Kafka client for %s cluster shut down", id))
+				slog.Info(fmt.Sprintf("Kafka client for %s cluster shut down", id))
 			case <-ctx.Done():
 				msg := fmt.Sprintf("shutdown timeout reached before closing Kafka cluster %s", id)
 				slog.Error(msg)
