@@ -75,9 +75,9 @@ func (clusters AllKafkaClusters) Close(ctx context.Context) error {
 			select {
 			case <-done:
 				// Happy path
-				slog.Info(fmt.Sprintf("Kafka client for %s cluster shut down %s", id, time.Now().Format(time.RFC3339Nano)))
+				slog.Info(fmt.Sprintf("Kafka client for '%s' cluster shut down %s", id, time.Now().Format(time.RFC3339Nano)))
 			case <-ctx.Done():
-				msg := fmt.Sprintf("shutdown timeout reached before closing Kafka cluster %s", id)
+				msg := fmt.Sprintf("shutdown timeout reached before closing Kafka cluster '%s'", id)
 				slog.Error(msg)
 				errCh <- fmt.Errorf("%s", msg)
 			}
