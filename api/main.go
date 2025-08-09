@@ -62,8 +62,8 @@ func main() {
 	})
 
 	if err := g.Wait(); err != nil {
-		slog.Error("Shutdown completed with errors", "error", err)
+		slog.Error("Shutdown completed with errors at %s", "error", err, "time", time.Now().Format(time.RFC3339Nano))
 	} else {
-		slog.Info("Shutdown completed cleanly")
+		slog.Info(fmt.Sprintf("Shutdown completed cleanly at %s", time.Now().Format(time.RFC3339Nano)))
 	}
 }
