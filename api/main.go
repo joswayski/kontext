@@ -44,18 +44,20 @@ func main() {
 	g, gCtx := errgroup.WithContext(shutdownCtx)
 
 	g.Go(func() error {
-		slog.Info(fmt.Sprintf("Shutting down HTTP server %s", time.Now().Format(time.RFC3339)))
+		slog.Info(fmt.Sprintf("Shutting down HTTP server %s", time.Now().Format(time.RFC3339Nano)))
 		if err := srv.Shutdown(gCtx); err != nil {
-			return fmt.Errorf("http shutdown: %w", err)
+			return fmt.Errorf("http shutdown error: %w", err)
 		}
+		slog.Info(fmt.Sprintf("HTTP server shut down %s", time.Now().Format(time.RFC3339Nano)))
 		return nil
 	})
 
 	g.Go(func() error {
-		slog.Info(fmt.Sprintf("Closing Kafka clusters %s", time.Now().Format(time.RFC3339)))
+		slog.Info(fmt.Sprintf("Closing Kafka clients %s", time.Now().Format(time.RFC3339Nano)))
 		if err := kafkaClusters.Close(gCtx); err != nil {
-			return fmt.Errorf("kafka shutdown: %w", err)
+			return fmt.Errorf("kafka shutdown error: %w", err)
 		}
+		slog.Info(fmt.Sprintf("Kafka clients closed %s", time.Now().Format(time.RFC3339Nano)))
 		return nil
 	})
 
