@@ -1,6 +1,8 @@
 package kafka
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -52,18 +54,43 @@ func GetKafkaClustersFromConfig(cfg config.KontextConfig) AllKafkaClusters {
 	return allClusters
 }
 
-func (clusters AllKafkaClusters) Close() {
+func (clusters AllKafkaClusters) Close(ctx context.Context) error {
 	var wg sync.WaitGroup
+	errCh := make(chan error, len(clusters))
+
 	for id, cluster := range clusters {
 		wg.Add(1)
 
 		go func(id string, cluster KafkaCluster) {
 			defer wg.Done()
-			slog.Warn(fmt.Sprintf("Shutting down Kafka client for %s cluster", id))
-			cluster.Client.Close()
-			slog.Warn(fmt.Sprintf("Kafka client for %s cluster shut down", id))
+			slog.Info(fmt.Sprintf("Shutting down Kafka client for '%s' cluster", id))
+
+			done := make(chan struct{})
+			go func() {
+				cluster.Client.Close()
+				close(done)
+			}()
+
+			select {
+			case <-done:
+				// Happy path
+				slog.Info(fmt.Sprintf("Kafka client for '%s' cluster shut down", id))
+			case <-ctx.Done():
+				msg := fmt.Sprintf("shutdown timeout reached before closing Kafka cluster '%s'", id)
+				slog.Error(msg)
+				errCh <- fmt.Errorf("%s", msg)
+			}
+
 		}(id, cluster)
 	}
 
 	wg.Wait()
+	close(errCh)
+
+	var errs []error
+	for err := range errCh {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
 }
