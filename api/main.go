@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -13,24 +12,12 @@ import (
 	"github.com/joswayski/kontext/api/routes"
 	config "github.com/joswayski/kontext/pkg/config"
 	kafka "github.com/joswayski/kontext/pkg/kafka"
+	utils "github.com/joswayski/kontext/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.TimeKey {
-				return slog.Attr{
-					Key:   slog.TimeKey,
-					Value: slog.StringValue(a.Value.Time().Format("2006-01-02 15:04:05.000")),
-				}
-			}
-			return a
-		},
-	}
-	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
-	slog.SetDefault(logger)
+	utils.SetupLogger()
 
 	cfg := config.GetConfig()
 
