@@ -7,7 +7,6 @@ import (
 	"log"
 	"log/slog"
 	"sync"
-	"time"
 
 	config "github.com/joswayski/kontext/pkg/config"
 	"github.com/twmb/franz-go/pkg/kadm"
@@ -64,7 +63,7 @@ func (clusters AllKafkaClusters) Close(ctx context.Context) error {
 
 		go func(id string, cluster KafkaCluster) {
 			defer wg.Done()
-			slog.Info(fmt.Sprintf("Shutting down Kafka client for '%s' cluster %s", id, time.Now().Format(time.RFC3339Nano)))
+			slog.Info(fmt.Sprintf("Shutting down Kafka client for '%s' cluster", id))
 
 			done := make(chan struct{})
 			go func() {
@@ -75,7 +74,7 @@ func (clusters AllKafkaClusters) Close(ctx context.Context) error {
 			select {
 			case <-done:
 				// Happy path
-				slog.Info(fmt.Sprintf("Kafka client for '%s' cluster shut down %s", id, time.Now().Format(time.RFC3339Nano)))
+				slog.Info(fmt.Sprintf("Kafka client for '%s' cluster shut down", id))
 			case <-ctx.Done():
 				msg := fmt.Sprintf("shutdown timeout reached before closing Kafka cluster '%s'", id)
 				slog.Error(msg)

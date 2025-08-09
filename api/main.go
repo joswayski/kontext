@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -16,7 +17,23 @@ import (
 )
 
 func main() {
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Attr{
+					Key:   slog.TimeKey,
+					Value: slog.StringValue(a.Value.Time().Format("2006-01-02 15:04:05.000")),
+				}
+			}
+			return a
+		},
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
+	slog.SetDefault(logger)
+
 	cfg := config.GetConfig()
+
 	kafkaClusters := kafka.GetKafkaClustersFromConfig(*cfg)
 
 	r := routes.GetRoutes(kafkaClusters)
@@ -44,26 +61,26 @@ func main() {
 	g, gCtx := errgroup.WithContext(shutdownCtx)
 
 	g.Go(func() error {
-		slog.Info(fmt.Sprintf("Shutting down HTTP server %s", time.Now().Format(time.RFC3339Nano)))
+		slog.Info("Shutting down HTTP server")
 		if err := srv.Shutdown(gCtx); err != nil {
 			return fmt.Errorf("http shutdown error: %w", err)
 		}
-		slog.Info(fmt.Sprintf("HTTP server shut down %s", time.Now().Format(time.RFC3339Nano)))
+		slog.Info("HTTP server shut down")
 		return nil
 	})
 
 	g.Go(func() error {
-		slog.Info(fmt.Sprintf("Closing Kafka clients %s", time.Now().Format(time.RFC3339Nano)))
+		slog.Info("Closing Kafka clients")
 		if err := kafkaClusters.Close(gCtx); err != nil {
 			return fmt.Errorf("kafka shutdown error: %w", err)
 		}
-		slog.Info(fmt.Sprintf("Kafka clients closed %s", time.Now().Format(time.RFC3339Nano)))
+		slog.Info("Kafka clients closed")
 		return nil
 	})
 
 	if err := g.Wait(); err != nil {
-		slog.Error("Shutdown completed with errors at %s", "error", err, "time", time.Now().Format(time.RFC3339Nano))
+		slog.Error("Shutdown completed with errors", "error", err)
 	} else {
-		slog.Info(fmt.Sprintf("Shutdown completed cleanly at %s", time.Now().Format(time.RFC3339Nano)))
+		slog.Info("Shutdown completed cleanly")
 	}
 }
