@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -12,47 +12,56 @@ import (
 	"github.com/joswayski/kontext/api/routes"
 	config "github.com/joswayski/kontext/pkg/config"
 	kafka "github.com/joswayski/kontext/pkg/kafka"
+	"golang.org/x/sync/errgroup"
 )
-
-func startServer(srv *http.Server, cfg config.KontextConfig) {
-	slog.Info("Starting API server on port " + cfg.ApiPort)
-	err := srv.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		slog.Error("Error running API server", "error", err)
-		os.Exit(1)
-	}
-}
-
-func awaitShutdownSignal(srv *http.Server) {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	slog.Warn("Shutting down API server")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-	defer cancel()
-
-	err := srv.Shutdown(ctx)
-	if err != nil {
-		slog.Error("Server forced to shutdown:", "error", err)
-		os.Exit(1)
-	}
-
-	slog.Info("API server shutdown complete, cleaning up resources...")
-}
 
 func main() {
 	cfg := config.GetConfig()
 	kafkaClusters := kafka.GetKafkaClustersFromConfig(*cfg)
 
 	r := routes.GetRoutes(kafkaClusters)
-
 	srv := &http.Server{
 		Addr:    ":" + cfg.ApiPort,
 		Handler: r,
 	}
 
-	go startServer(srv, *cfg)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	awaitShutdownSignal(srv)
-	kafkaClusters.Close()
+	go func() {
+		slog.Info("Starting API server", "port", cfg.ApiPort)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("Error running API server", "error", err)
+			stop()
+		}
+	}()
+	<-ctx.Done()
+	slog.Warn("Shutdown signal received")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	g, ctx := errgroup.WithContext(shutdownCtx)
+
+	g.Go(func() error {
+		slog.Info("Shutting down HTTP server...")
+		if err := srv.Shutdown(ctx); err != nil {
+			return fmt.Errorf("http shutdown: %w", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		slog.Info("Closing Kafka clusters...")
+		if err := kafkaClusters.Close(ctx); err != nil {
+			return fmt.Errorf("kafka shutdown: %w", err)
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		slog.Error("Shutdown completed with errors", "error", err)
+	} else {
+		slog.Info("Shutdown completed cleanly")
+	}
 }
