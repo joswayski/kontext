@@ -144,6 +144,11 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	slog.Warn("Shutting down Glide app!")
-	kafkaClustersAndClients.Close()
+	kafkaClustersAndClients.Close(shutdownCtx)
+
+	slog.Info("Glide app shut down")
 }
