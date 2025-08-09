@@ -12,7 +12,7 @@ func SetupLogger() {
 			if a.Key == slog.TimeKey {
 				return slog.Attr{
 					Key:   slog.TimeKey,
-					Value: slog.StringValue(a.Value.Time().Format("2006-01-02 15:04:05.000")),
+					Value: slog.StringValue(a.Value.Time().Format("2006-01-02T15:04:05.000Z")),
 				}
 			}
 			return a
