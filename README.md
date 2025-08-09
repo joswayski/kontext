@@ -31,13 +31,13 @@ docker compose up -d --build
 This will create...
 - Kafka Clusters & Topics:
 
-| Cluster       | Broker(s)     |  JMX Port (for metrics)    | Topics |
-| ------------- | ------------- | ------------- | -------------|
-| Rides  | localhost:19092  | 19644  | ride.requested, ride.fare.calculated, ride.matched, ride.started, ride.completed, ride.cancelled  | 
-| Users  | localhost:29092  | 29644  | user.created, user.updated|
-| Drivers  | localhost:39092  | 39644  |      driver.onboarded, driver.activated, driver.deactivated, driver.location.updated, driver.rating.submitted  | 
-| Payments  | localhost:49092  | 49644  | payment.method.added, payment.method.removed, payment.initiated, payment.succeeded, payment.failed, refund.issued  | 
-- A fake ride ridesharing application called **Glide** which runs in the background producing and consuming(WIP) messages from the topics above
+| Cluster       | Broker(s)     |  Admin API    | Console UI    | Topics |
+| ------------- | ------------- | ------------- | ------------- | -------------|
+| Rides  | kafka-rides-0:9092  | http://localhost:19644  | http://localhost:8080  | ride.requested, ride.fare.calculated, ride.matched, ride.started, ride.completed, ride.cancelled  | 
+| Users  | kafka-users-0:9092  | http://localhost:29644  | http://localhost:8081  | user.created, user.updated|
+| Drivers  | kafka-drivers-0:9092  | http://localhost:39644  | http://localhost:8082  |      driver.onboarded, driver.activated, driver.deactivated, driver.location.updated, driver.rating.submitted  | 
+| Payments  | kafka-payments-0:9092  | http://localhost:49644  | http://localhost:8083  | payment.method.added, payment.method.removed, payment.initiated, payment.succeeded, payment.failed, refund.issued  | 
+- A fake ride ridesharing application called **Glide** which runs in the background producing and consuming messages from the topics above
 
 
 For simplicity, the **web** app and the **api** are run outside of Docker
