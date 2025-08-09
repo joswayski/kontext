@@ -31,7 +31,7 @@ This will create...
 | Users  | kafka-users-0:9092  | http://localhost:29644  | http://localhost:8081  | user.created, user.updated|
 | Drivers  | kafka-drivers-0:9092  | http://localhost:39644  | http://localhost:8082  |      driver.onboarded, driver.activated, driver.deactivated, driver.location.updated, driver.rating.submitted  | 
 | Payments  | kafka-payments-0:9092  | http://localhost:49644  | http://localhost:8083  | payment.method.added, payment.method.removed, payment.initiated, payment.succeeded, payment.failed, refund.issued  | 
-- A fake ride ridesharing application called **Glide** which runs in the background producing and consuming(WIP) messages from the topics above
+- A fake ride ridesharing application called **Glide** which runs in the background producing and consuming messages from the topics above
 
 
 For simplicity, the **web** app and the **api** are run outside of Docker
