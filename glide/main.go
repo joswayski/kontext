@@ -14,7 +14,7 @@ import (
 	glideConfig "github.com/joswayski/kontext/glide/config"
 	globalConfig "github.com/joswayski/kontext/pkg/config"
 	kafka "github.com/joswayski/kontext/pkg/kafka"
-	utils "github.com/joswayski/kontext/pkg/utils"
+	logging "github.com/joswayski/kontext/pkg/logging"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
@@ -118,7 +118,7 @@ func runConsumers(kafkaClustersAndClients kafka.AllKafkaClusters) {
 // Eventually we will move this to it's own repo but for now, its just a folder inside the main Kontext repo
 // This should simulate a ridesharing app called Glide which sends events into the clusters defined in /config/config.go
 func main() {
-	utils.SetupLogger()
+	logging.SetupLogger()
 
 	slog.Info("Starting Glide application!")
 

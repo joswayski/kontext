@@ -12,12 +12,12 @@ import (
 	"github.com/joswayski/kontext/api/routes"
 	config "github.com/joswayski/kontext/pkg/config"
 	kafka "github.com/joswayski/kontext/pkg/kafka"
-	utils "github.com/joswayski/kontext/pkg/utils"
+	logging "github.com/joswayski/kontext/pkg/logging"
 	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	utils.SetupLogger()
+	logging.SetupLogger()
 
 	cfg := config.GetConfig()
 
