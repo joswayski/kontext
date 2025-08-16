@@ -132,6 +132,8 @@ func GetTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInC
 		consumerGroupsInTopics, consumerGroupsInTopicsError = getConsumerGroupsForAllTopics(ctx, cluster)
 	}()
 
+	wg.Wait()
+
 	if topicSizeDataError != nil {
 		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve topic sizes in cluster %s", topicSizeDataError.Error())
 	}
@@ -140,7 +142,6 @@ func GetTopicsInCluster(ctx context.Context, cluster KafkaCluster) (AllTopicsInC
 		return AllTopicsInCluster{}, fmt.Errorf("unable to retrieve consumer groups per topic %s", consumerGroupsInTopicsError.Error())
 	}
 
-	wg.Wait()
 	allTopics := make([]TopicInCluster, 0)
 
 	for topic, sizeData := range topicSizeData.Topics {
