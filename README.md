@@ -10,7 +10,7 @@ Nobody likes keeping diagrams or Markdown in sync anyway.
 ## Getting Started
 
 ### Prerequisites
-- Go >= 1.24
+- Rust + Cargo
 - Node 22
 - Docker
 
