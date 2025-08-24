@@ -1,0 +1,6 @@
+[workspace]
+members = ["api", "glide", "shared"]
+resolver = "2"
+default-run = "api"
+
+[workspace.dependencies]

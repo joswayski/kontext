@@ -1,0 +1,13 @@
+{
+  "name": "kontext",
+  "private": true,
+  "scripts": {
+    "web": "cd web && npm run dev",
+    "api": "cargo run -p api",
+    "dev": "concurrently \"npm run api\" \"npm run web\"",
+    "install": "cd web && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
