@@ -3,3 +3,4 @@
 !.env.example
 **/target/**
 **/target/
+node_modules

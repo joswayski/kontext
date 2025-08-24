@@ -1,0 +1,11 @@
+[workspace]
+members = ["api", "glide", "shared"]
+resolver = "2"
+default-run = "api"
+
+[workspace.dependencies]
+tokio = { version = "1.47.1", features = ["full"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.143"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"

@@ -11,13 +11,13 @@ Nobody likes keeping diagrams or Markdown in sync anyway.
 
 ## Getting Started
 
-### Prerequisites
+#### Prerequisites
 - Rust + Cargo
 - Node 22
 - Docker
 
 
-### Setup datasources
+#### Setup datasources
 ```bash
 cp .env.example .env
 
@@ -35,10 +35,10 @@ This will create...
 | Payments  | payments:9095  | localhost:39095  | payment.method.added, payment.method.removed, payment.initiated, payment.succeeded, payment.failed, refund.issued  | 
 2. A fake ride ridesharing application called **Glide** which runs in the background producing and consuming messages from the topics above
 
+#### Web & API
+For simplicity, the **web** app and the **api** are run outside of Docker. 
+To start both: `npm run dev` or individually `npm run web|api` on ports 3000/4000
 
-For simplicity, the **web** app and the **api** are run outside of Docker
 
-- To start the web app: `cd web` && `npm run dev` at http://localhost:3000
-- To start the API: `cd api` && `cargo run` at http://localhost:4000
 
 
